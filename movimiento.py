@@ -3,10 +3,9 @@ import datetime
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.signal
 
+tortugometro_path = os.path.join(os.path.split(os.getcwd())[0], "Datos_tortugometro_crudo")
 
-tortugometro_path = os.path.join(os.getcwd(), "Datos_tortugometro_crudo")
 
 def ReadIMUData(path):
     """Lee los datos del tortugómetro con el formato que vienen y los guarda en un pandas dataframe con una columna
@@ -53,7 +52,7 @@ def movimiento_por_convolucion(df):
     plt.hist(y, bins=bins)
     plt.xlabel('Rango de la convolución')
     plt.title('Distribución rango de convolución x-y')
-    plt.savefig(os.path.join(os.getcwd(), "Histograma_convolucion", document+'.png'))
+    plt.savefig(os.path.join(os.getcwd(), "Histograma_convolucion", document[:-4]+'.png'))
     plt.show()
 
 
