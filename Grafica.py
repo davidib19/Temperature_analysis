@@ -2,7 +2,30 @@ import LeerDatosExcel as lee
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import os
+import matplotlib as mpl
 import datetime
+
+
+plt.style.use("seaborn")
+mpl.rcParams.update(
+    {
+        "font.size": 20,
+        "axes.labelsize": 20,
+		"legend.fontsize": 20,
+        "xtick.labelsize": 18,
+        "ytick.labelsize": 18,
+        "figure.figsize": [9, 6.5],
+        "figure.autolayout": True,
+        "font.family": "serif",
+        "font.sans-serif": ["Helvetica"],
+        "savefig.format": 'pdf',
+        "savefig.bbox": 'tight'
+    }
+)
+
+
+FONTSIZE = 14
+LEGEND_FONTSIZE = 12
 
 
 def grafica_temp(df, label):
@@ -32,6 +55,8 @@ for campa in os.listdir(lee.data_path):
                 ax.plot_date(x1, ibuttons[col], '-')
                 ax.plot_date(mdates.date2num(imu['datetime']), imu['tempIMU_C'], '-')
                 print('Campaña: {} tortuga: {}'.format(campa, col))
+                plt.legend(['iButton', 'Tortugómetro'])
+                plt.title(col, fontsize=20)
                 plt.show()
 
 
