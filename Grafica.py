@@ -9,6 +9,7 @@ import datetime
 plt.style.use("seaborn")
 mpl.rcParams.update(
     {
+        "axes.titlesize" : 24,
         "font.size": 20,
         "axes.labelsize": 20,
 		"legend.fontsize": 20,
@@ -56,7 +57,7 @@ for campa in os.listdir(lee.data_path):
                 ax.plot_date(mdates.date2num(imu['datetime']), imu['tempIMU_C'], '-')
                 print('Campaña: {} tortuga: {}'.format(campa, col))
                 plt.legend(['iButton', 'Tortugómetro'])
-                plt.title(col, fontsize=20)
+                plt.title(col)
                 plt.show()
 
 
