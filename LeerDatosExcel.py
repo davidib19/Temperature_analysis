@@ -2,17 +2,17 @@ import pandas as pd
 import datetime
 import os
 
-iButton_path = os.path.join(os.getcwd(), "Datos_iButton")
-tortugometro_path = os.path.join(os.getcwd(), "Datos_tortugometro")
+data_path = os.path.join(os.getcwd(), "Datos")
 
 
 def toDatetime(string_datetime):
     if isinstance(string_datetime, str):
-        lista = string_datetime.split(" ")
-        if len(lista[0].split('/')[2]) == 4:
-            string_datetime = datetime.datetime.strptime(string_datetime, '%m/%d/%Y %I:%M:%S %p')
-        else:
-            string_datetime = datetime.datetime.strptime(string_datetime, '%m/%d/%y %I:%M:%S %p')
+        if string_datetime != "":
+            lista = string_datetime.split(" ")
+            if len(lista[0].split('/')[2]) == 4:
+                string_datetime = datetime.datetime.strptime(string_datetime, '%m/%d/%Y %I:%M:%S %p')
+            else:
+                string_datetime = datetime.datetime.strptime(string_datetime, '%m/%d/%y %I:%M:%S %p')
     else:
         string_datetime = string_datetime.replace(month=string_datetime.day, day=string_datetime.month)
     return string_datetime
@@ -21,11 +21,20 @@ def toDatetime(string_datetime):
 def ReadData(path):
     """Lee los datos del iButton del excel como viene e interpreta correctamente la fecha y la hora
     y la guarda en formato datetime.datetime"""
-    df = pd.read_excel(path, converters={'Date Time, GMT-03:00': toDatetime})
-    df.rename(columns={'Date Time, GMT-03:00': 'datetime'}, inplace=True)
+    df = pd.read_excel(path, converters={'Date Time, GMT-03:00': toDatetime, 'Date Time, GMT-03:00.1': toDatetime,
+                                         'Date Time, GMT-03:00.2': toDatetime, 'Date Time, GMT-03:00.3': toDatetime,
+                                         'Date Time, GMT-03:00.4': toDatetime, 'Date Time, GMT-03:00.5': toDatetime,
+                                         'Date Time, GMT-03:00.6': toDatetime, 'Date/Time': toDatetime,
+                                         'Date/Time.1': toDatetime, 'Date/Time.2': toDatetime, 'Date/Time.3': toDatetime,
+                                         'Date/Time.4': toDatetime, 'Date/Time.5': toDatetime, 'Date/Time.6': toDatetime})
+    df.rename(columns={'Date Time, GMT-03:00': 'datetime', 'Date Time, GMT-03:00.1': 'datetime.1',
+                       'Date Time, GMT-03:00.2': 'datetime.2', 'Date Time, GMT-03:00.3': 'datetime.3',
+                       'Date Time, GMT-03:00.4': 'datetime.4', 'Date Time, GMT-03:00.5': 'datetime.5',
+                       'Date Time, GMT-03:00.6': 'datetime.6'}, inplace=True)
+    df.rename(columns={'Date/Time': 'datetime',
+                       'Date/Time.1': 'datetime.1', 'Date/Time.2': 'datetime.2', 'Date/Time.3': 'datetime.3',
+                       'Date/Time.4': 'datetime.4', 'Date/Time.5': 'datetime.5', 'Date/Time.6': 'datetime.6'}, inplace=True)
     return df
-
-
 
 
 def ReadIMUData(path):
@@ -53,6 +62,3 @@ def formatIMU(stringhour):
     return datetime.time(microsecond=microsecond, second=second, minute=minute, hour=hour)
 
 
-#for document in os.listdir(tortugometro_path):
-#    print(ReadIMUData(os.path.join(tortugometro_path, document)))
-#    grafica_temp(ReadData(os.path.join(DATA_PATH, document)))
