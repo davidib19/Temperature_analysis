@@ -57,3 +57,4 @@ for campa in os.listdir(lee.data_path):
                 plt.legend(['iButton', 'Tortugómetro'])
                 plt.title(col)
                 plt.show()
+                #plt.savefig(os.path.join(os.getcwd(),'Imu_vs_ibutton', '{}-{}'.format(campa, col)+'.png'))
