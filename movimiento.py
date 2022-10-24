@@ -8,15 +8,17 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 import matplotlib.dates as mdates
 import matplotlib as mpl
 import LeerDatosExcel as lee
+import pickle as pkl
+
 plt.style.use("seaborn")
 mpl.rcParams.update(
     {
-        "axes.titlesize": 24,
-        "font.size": 20,
-        "axes.labelsize": 20,
-        "legend.fontsize": 20,
-        "xtick.labelsize": 18,
-        "ytick.labelsize": 18,
+        "axes.titlesize": 14,
+        "font.size": 12,
+        "axes.labelsize": 12,
+        "legend.fontsize": 12,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
         "figure.figsize": [9, 6.5],
         "figure.autolayout": True,
         "font.family": "serif",
@@ -38,7 +40,7 @@ def ReadIMUData(path):
     en tipo datetime.datetime transformada a hora de Argentina."""
     df = pd.read_csv(path, parse_dates=['date'], converters={'timeGMT': formatIMU}, sep=';', usecols=['date', 'timeGMT',
                                                                                                       'accX', 'accY', 'accZ',
-                                                                                                      'tempIMU_C'])
+                                                                                                      'tempIMU_C','lat','lon'])
     df['datetime'] = df.apply(
         lambda r: datetime.datetime.combine(r['date'], r['timeGMT']) - datetime.timedelta(hours=3), 1)
     return df.drop(['date', 'timeGMT'], axis=1)
@@ -61,6 +63,8 @@ def formatIMU(stringhour):
 def rango_convolucion(vector):
     convolucion = np.real(np.fft.ifft(np.fft.fft(vector[:128])*np.fft.fft(vector[128:])))
     return np.amax(convolucion)-np.amin(convolucion)
+
+
 
 
 def movimiento_por_convolucion(df):
@@ -86,7 +90,7 @@ def histograma_rangos(y):
 
 def color_curve(df, rangos):
     x = mdates.date2num(df['datetime'])
-    y = df['accX'].to_numpy()
+    y = df['Temperatura_imu'].to_numpy()
     aux = int(y.shape[0] / 128) * 128
     points = np.array([x[:aux], y[:aux]]).T.reshape(int(aux/128), 128, 2)
     segments = np.concatenate([points[:-1], points[1:]], axis=1)
@@ -103,6 +107,7 @@ def color_curve(df, rangos):
     timeFmt = mdates.DateFormatter("%d %H")
     ax.xaxis.set_major_formatter(timeFmt)
     ax.autoscale_view()
+
     plt.show()
 
 
@@ -124,7 +129,8 @@ def movimiento_vs_T(df, rangos):
                 return False, pd.DataFrame(columns=['rangos', 'Temperatura'])
 
     dict = {'datetime': df['datetime'][:rangos.size*128:128], 'rangos': rangos,
-            'Temperatura': np.interp(df['datetime'][:rangos.size*128:128].apply(toTimestamp), ibutton['datetime'].apply(toTimestamp), ibutton[temp])}
+            'Temperatura_campo': np.interp(df['datetime'][:rangos.size*128:128].apply(toTimestamp), ibutton['datetime'].apply(toTimestamp), ibutton[temp]),
+            'Temperatura_imu':df['tempIMU_C'][:rangos.size*128:128]}
     df2 = pd.DataFrame(data=dict)
     #fig, axs = plt.subplots(2, 1, sharex=True, sharey=True)
     #df2.loc[df2['rangos'] > 10**6].hist(column='Temperatura', ax=axs[0])
@@ -135,7 +141,61 @@ def movimiento_vs_T(df, rangos):
     return True, df2
 
 
-todos = pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'Temperatura': pd.Series(dtype=np.float64)})
+def histograma_temperatura_vs_movimiento():
+    todos = pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
+    for campa in os.listdir(tortugometro_path):
+        for document in os.listdir(os.path.join(tortugometro_path, campa)):
+            if document[-3:] == 'csv':
+                df = ReadIMUData(os.path.join(tortugometro_path, campa, document))
+                rangos = movimiento_por_convolucion(df)
+                boo, df2 = movimiento_vs_T(df, rangos)
+                if boo:
+                    aux=pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
+                    aux['tempIMU_C'] = df['tempIMU_C'].iloc[:rangos.size*128:128]
+                    aux['rangos']=rangos
+                    todos = pd.concat([todos, aux], ignore_index=True)
+    fig, axs = plt.subplots(2, 1, sharex=True, sharey=False)
+    todos['rangos'] = todos['rangos'].astype(np.float64)
+    todos['tempIMU_C'] = todos['tempIMU_C'].astype(np.float64)
+    todos.to_pickle('todosimu.pkl')
+
+    q = todos.loc[(10 ** 3 < todos['rangos']) & (todos['rangos'] < 10 ** 5)]
+    m = todos.loc[todos['rangos'] > 10 ** 6]
+    quieto, bquieto = np.histogram(q['Temperatura'], bins=np.arange(15, 38, 2.5), density=False)
+    mov, bmov = np.histogram(m['Temperatura'], bins=np.arange(15, 38, 2.5), density=False)
+    mov = mov * 0.3712 / 60
+    quieto = quieto * 0.3712 / 60
+    axs[0].bar(np.arange(15, 36, 2.5), mov, width=2.5, align='edge')
+    axs[1].bar(np.arange(15, 36, 2.5), quieto, width=2.5, align='edge')
+    axs[0].title.set_text('Movimiento')
+    axs[1].title.set_text('Quietud')
+    plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'todosimmu.png'))
+
+#histograma_temperatura_vs_movimiento()
+"""fig, axs = plt.subplots(2, 1, sharex=True, sharey=False)
+todos = pd.read_pickle('todos.pkl')
+print(todos)
+q = todos.loc[(10 ** 3 < todos['rangos']) & (todos['rangos'] < 10 ** 5)]
+m = todos.loc[todos['rangos'] > 10 ** 6]
+quieto, bquieto = np.histogram(q['Temperatura'], bins=np.arange(10, 38, 2.6), density=False)
+mov, bmov = np.histogram(m['Temperatura'], bins=np.arange(10, 38, 2.6), density=False)
+mov = mov * 0.3712 / 60
+quieto = quieto * 0.3712 / 60
+condicional = mov/(mov+quieto)
+axs[0].bar(np.arange(10, 35, 2.6), mov, width=2.6, align='edge')
+axs[1].bar(np.arange(10, 35, 2.6), quieto, width=2.6, align='edge')
+axs[0].set_ylabel('Hours moving')
+axs[1].set_ylabel('Hours still')
+axs[1].set_xlabel('Temperature (C)')
+plt.show()
+plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'todos.png'))
+plt.bar(np.arange(10, 35, 2.6), condicional, width=2.6, align='edge')
+plt.ylabel("Hours moving / Hours the air had each temperature")
+plt.xlabel('Temperature (C)')
+plt.show()
+"""
+"""
+#color curve temperature vs time vs motion
 for campa in os.listdir(tortugometro_path):
     for document in os.listdir(os.path.join(tortugometro_path, campa)):
         if document[-3:] == 'csv':
@@ -143,12 +203,128 @@ for campa in os.listdir(tortugometro_path):
             rangos = movimiento_por_convolucion(df)
             boo, df2 = movimiento_vs_T(df, rangos)
             if boo:
-                todos = pd.concat([todos, df2[['rangos', 'Temperatura']]], ignore_index=True)
-fig, axs = plt.subplots(2, 1, sharex=True, sharey=True)
-todos['rangos'] = todos['rangos'].astype(np.float64)
-todos['Temperatura'] = todos['Temperatura'].astype(np.float64)
-todos.loc[(10 ** 3 < todos['rangos']) & (todos['rangos'] < 10 ** 5)].hist(column='Temperatura', ax=axs[1])
-todos.loc[todos['rangos'] > 10 ** 6].hist(column='Temperatura', ax=axs[0])
-axs[0].title.set_text('Movimiento')
-axs[1].title.set_text('Quietud')
-plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'todos.png'))
+                df2['dia']=df2['datetime'].dt.day
+                groups = df2.groupby('dia')
+                fig, ax = plt.subplots(groups.ngroups, 1, sharex=True, sharey=False)
+                i = 0
+                cmap = ListedColormap(['r', 'y', 'g'])
+                norm = BoundaryNorm([0, 10 ** 5, 10 ** 7, 10 ** 10], cmap.N)
+                lim1=mdates.date2num(df2['datetime'].iloc[0].replace(hour=8,minute=0,second=0))
+                lim2=mdates.date2num(df2['datetime'].iloc[0].replace(hour=20,minute=59,second=59))
+                if groups.ngroups > 1:
+                    for name, group in groups:
+                        x = mdates.date2num(group['datetime'] - datetime.timedelta(days=name-next(iter(groups.groups.keys()))))
+                        y = group['Temperatura_imu']
+                        ax[i].scatter(x,y, c=group['rangos'], cmap=cmap, norm=norm, s=0.75)
+                        ax[i].plot(x, group['Temperatura_campo'], color='b')
+                        ax[i].set_ylabel(str(group['datetime'].iloc[0].date()))
+                        i += 1
+                    i-=1
+                    ax[i].xaxis.set_major_locator(mdates.HourLocator())
+                    ax[i].xaxis.set_minor_locator(mdates.MinuteLocator())
+                    timeFmt = mdates.DateFormatter("%H:%M")
+                    ax[i].xaxis.set_major_formatter(timeFmt)
+                    ax[i].set_xlim(lim1, lim2)
+                    ax[i].tick_params(axis='x', labelrotation=45)
+                    ax[i].set_xlabel("Time of the day")
+                    fig.supylabel("Temperature")
+                    plt.subplots_adjust(wspace=0, hspace=0)
+                #plt.tight_layout()
+                    plt.savefig(os.path.join(os.getcwd(), 'Color_curves', document[:-4]+' '+campa+'.pdf'))
+                #plt.show()
+
+#histograma_temperatura_vs_movimiento()
+
+#plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'todos.png'))
+
+"""
+
+# histograma de horas de movimiento por hora del día por mes
+
+movimientos = []
+todos = []
+for campa in ["11_2021", "11_2020"]:
+    for document in os.listdir(os.path.join(tortugometro_path, campa)):
+        if document[-3:] == 'csv':
+            df = ReadIMUData(os.path.join(tortugometro_path, campa, document))
+            rangos = movimiento_por_convolucion(df)
+            aux = df['datetime'][:rangos.size*128:128].dt.time.to_numpy()
+            todos.append(aux)
+            for i in np.arange(rangos.shape[0]):
+                if rangos[i] > 10 ** 7:
+                    movimientos.append(aux[i])
+# pickle
+with open('movimientos.pkl', 'wb') as f:
+    pkl.dump(movimientos, f)
+with open('todoshora.pkl', 'wb') as f:
+    pkl.dump(todos, f)
+
+# unpickle
+with open('movimientos.pkl', 'rb') as f:
+    movimientos = pkl.load(f)
+with open('todoshora.pkl', 'rb') as f:
+    todos = pkl.load(f)
+todos = [item for sublist in todos for item in sublist]
+
+f8t10=0
+f10to12=0
+f12to14=0
+f14to16=0
+f16to18=0
+f18to20=0
+print()
+for i in np.arange(len(todos)):
+    if todos[i] >= datetime.time(8,0,0):
+        if todos[i] < datetime.time(10,0,0):
+            f8t10+=1
+        else:
+            if todos[i] < datetime.time(12,0,0):
+                f10to12+=1
+            else:
+                if todos[i] < datetime.time(14,0,0):
+                    f12to14+=1
+                else:
+                    if todos[i] < datetime.time(16,0,0):
+                        f14to16+=1
+                    else:
+                        if todos[i] < datetime.time(18,0,0):
+                            f16to18 += 1
+                        else:
+                            if todos[i] < datetime.time(20,0,0):
+                                f18to20 += 1
+x = np.arange(8, 20, 2)
+y = np.array([f8t10, f10to12, f12to14, f14to16, f16to18, f18to20])/(len(todos))
+plt.bar(x, y, width=2, align='edge')
+
+# repeat the same for movimientos
+f8t10=0
+f10to12=0
+f12to14=0
+f14to16=0
+f16to18=0
+f18to20=0
+for i in np.arange(len(movimientos)):
+    if movimientos[i] >= datetime.time(8,0,0):
+        if movimientos[i] < datetime.time(10,0,0):
+            f8t10+=1
+        else:
+            if movimientos[i] < datetime.time(12,0,0):
+                f10to12+=1
+            else:
+                if movimientos[i] < datetime.time(14,0,0):
+                    f12to14+=1
+                else:
+                    if movimientos[i] < datetime.time(16,0,0):
+                        f14to16+=1
+                    else:
+                        if movimientos[i] < datetime.time(18,0,0):
+                            f16to18 += 1
+                        else:
+                            if movimientos[i] < datetime.time(20,0,0):
+                                f18to20 += 1
+y = np.array([f8t10, f10to12, f12to14, f14to16, f16to18, f18to20])/(len(todos))
+plt.bar(x, y, width=2, align='edge')
+plt.legend(['Total windows meassured', 'Windows where movement was detected'])
+plt.xlabel('Hour of the day')
+plt.title('November - December')
+plt.show()
