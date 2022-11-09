@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/Color_curves" />
+      <excludeFolder url="file://$MODULE_DIR$/Histograma_convolucion" />
+      <excludeFolder url="file://$MODULE_DIR$/Histograma_movimiento_vs_temperatura_ibutton" />
+      <excludeFolder url="file://$MODULE_DIR$/Imu_vs_ibutton" />
+      <excludeFolder url="file://$MODULE_DIR$/Movimiento_vs_hora" />
+      <excludeFolder url="file://$MODULE_DIR$/aceleraciones" />
+    </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (Temperature_analysis)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
