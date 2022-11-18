@@ -84,7 +84,7 @@ def histograma_rangos(y):
     plt.hist(y, bins=bins)
     plt.xlabel('Rango de la convolución')
     plt.title('Distribución rango de convolución x-y')
-    plt.savefig(os.path.join(os.getcwd(), "Histograma_convolucion", document[:-4]+'.png'))
+    #plt.savefig(os.path.join(os.getcwd(), "Histograma_convolucion", document[:-4]+'.png'))
     plt.show()
 
 
@@ -130,7 +130,7 @@ def movimiento_vs_T(df, rangos):
 
     dict = {'datetime': df['datetime'][:rangos.size*128:128], 'rangos': rangos,
             'Temperatura_campo': np.interp(df['datetime'][:rangos.size*128:128].apply(toTimestamp), ibutton['datetime'].apply(toTimestamp), ibutton[temp]),
-            'Temperatura_imu':df['tempIMU_C'][:rangos.size*128:128]}
+            'tempIMU_C':df['tempIMU_C'][:rangos.size*128:128]}
     df2 = pd.DataFrame(data=dict)
     #fig, axs = plt.subplots(2, 1, sharex=True, sharey=True)
     #df2.loc[df2['rangos'] > 10**6].hist(column='Temperatura', ax=axs[0])

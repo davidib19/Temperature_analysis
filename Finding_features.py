@@ -32,7 +32,7 @@ def convolucion_ventana(df, window):
     tanx = xmean/zmean
     tany = ymean/zmean
     x = fourier_ventana(x)
-    y = fourier_ventana(y, True)
+    y = fourier_ventana(y)
     conv = x*y
     #aux = int(x.size/window)*window
     #conv = conv[:aux].reshape((int(aux/window), window))

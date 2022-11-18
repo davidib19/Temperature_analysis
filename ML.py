@@ -78,6 +78,7 @@ def series_histogram(database):
     fig.colorbar(pcm, ax=ax, label="# points", pad=0)
     ax.set_title("2d histogram and linear color scale")
     plt.show()
+    '''
 database=normalizar(database)
 db=np.zeros((database.shape[0],4))
 db[:,0]=database[:,0]
@@ -104,5 +105,5 @@ pr[:,2]=procesado[:,10:15].sum(axis=1)
 pr[:,3]=procesado[:,15:50].sum(axis=1)
 labels1 = artesanal_classifier(procesado)
 mov.color_curve(df, labels1, 2048)
-
+'''
 
