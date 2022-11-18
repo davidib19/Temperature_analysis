@@ -1,0 +1,8 @@
+0	quieta
+1	camina
+2	excarva_nido
+3	come
+4	macho_copulando
+5	hembra_copulando
+6	pelea
+7	otro
