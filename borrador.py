@@ -6,7 +6,7 @@ import numpy as np
 import pickle as pkl
 import matplotlib as mpl
 import os
-import ML 
+import ML
 import movimiento as mov
 
 plt.style.use("seaborn")
@@ -45,15 +45,19 @@ axs[1].title.set_text('Quietud')
 axs[1].set_xlabel('Temperatura')
 plt.show()
 '''
-'''
-todos = Grafica.histograma_etiquetas()  
-h, b = np.histogram(todos['tag'], bins=np.arange(-0.5, 8.5, 1.), density=False)
+
+with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'), 'rb') as handle:
+    db = pkl.load(handle)
+
+h, b = np.histogram(db[:,0], bins=np.arange(-0.5, 8.5, 1.), density=False)
 
 plt.bar(['quieto', 'camina','hace nido','come','macho copulando','hembra copulando', 'pelea', 'otros'],h)
 plt.title("Cantidad de etiquetas")
 plt.xticks(rotation=30)
-plt.savefig(os.getcwd()+'/test.pdf')
+#plt.savefig(os.getcwd()+'/test.pdf')
 plt.show()
+
+
 '''
 examples=np.zeros((14,4))
 for i in np.arange(4):
@@ -73,3 +77,6 @@ for name, group in groups:
     predicciones.append(prediccion)
 #print(predicciones)
 mov.color_curve(df,predicciones,512)
+'''
+
+Grafica.database_etiquetada()
