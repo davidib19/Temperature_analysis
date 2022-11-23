@@ -1,4 +1,6 @@
 import numpy as np
+import scipy.signal
+
 import Finding_features as ft
 import os
 import movimiento as mov
@@ -8,6 +10,7 @@ import matplotlib.pyplot as plt
 from copy import copy
 from matplotlib.colors import LogNorm
 import numpy.matlib
+
 """
 # Generar la base de datos
 database = np.zeros((1,1029))
@@ -24,11 +27,11 @@ with open('database.pkl', 'wb') as f:
     pkl.dump(database, f)
 """
 
-
-#unpickle database22
+# unpickle database22
 with open('database.pkl', 'rb') as f:
-    database= pkl.load(f)
+    database = pkl.load(f)
 database = np.delete(database, 0, axis=0)
+
 
 def normalizar(database):
     for i in range(database.shape[0]):
@@ -59,9 +62,10 @@ def artesanal_classifier(database):
                     label[i] = 3
     return label
 
+
 def series_histogram(database):
-    x = np.arange(4,50)
-    Y = database[:,4:50]
+    x = np.arange(4, 50)
+    Y = database[:, 4:50]
     num_fine = 800
     x_fine = np.linspace(x.min(), x.max(), num_fine)
     y_fine = np.empty((Y.shape[1], num_fine), dtype=float)
@@ -74,11 +78,50 @@ def series_histogram(database):
     cmap.set_bad(cmap(0))
     h, xedges, yedges = np.histogram2d(x_fine, y_fine, bins=[50, 100])
     pcm = ax.pcolormesh(xedges, yedges, h.T, cmap=cmap,
-                         norm=LogNorm(vmax=1.5e2), rasterized=True)
+                        norm=LogNorm(vmax=1.5e2), rasterized=True)
     fig.colorbar(pcm, ax=ax, label="# points", pad=0)
     ax.set_title("2d histogram and linear color scale")
     plt.show()
-    '''
+
+
+def Hopfield(examples, beta, e):
+    return np.round(examples @ np.exp(beta * examples.T @ e) / sum(np.exp(beta * examples.T @ e)),decimals=2)
+
+
+def make_examples():
+    with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'),
+              'rb') as handle:
+        db = pkl.load(handle)
+    examples = np.zeros((14, 3))
+    for etiqueta in [1, 2,3]:
+        aux = db[db[:, 0, 0] == etiqueta]
+        conv0 = scipy.signal.fftconvolve(aux[0, 1:513, 0], np.concatenate((aux[0, 1:513, 1], aux[0, 1:513, 1])),
+                                         mode='same')
+        conv0 -= np.mean(conv0)
+        conv0 /= np.trapz(conv0**2,dx=0.174)**0.5
+        f, dsp = scipy.signal.periodogram(conv0,fs=1/0.174,scaling='density')
+        examples[:, etiqueta-1] = np.round(dsp[:14], decimals=2)
+    return examples
+
+
+def predict_Hopfield(acc, beta, examples, precision):
+    conv = scipy.signal.fftconvolve(acc[:, 0], np.concatenate((acc[:, 1], acc[:, 1])), mode='same')
+    conv -= np.mean(conv)
+    if np.amax(conv) - np.amin(conv) < 10 ** 5:
+        return 0
+    conv /= np.trapz(conv ** 2, dx=0.174) ** 0.5
+    f, dsp = scipy.signal.periodogram(conv,fs=1/0.174,scaling='density')
+    out = Hopfield(examples, beta, np.round(dsp[:14], decimals=2))
+    for i in [1,2,3]:
+        if np.sum(np.abs(out-examples[:, i]))<=precision:
+            return 2
+    if np.sum(np.abs(out-examples[:, 0]))<=precision:
+           return 1
+
+    return 3
+
+
+'''
 database=normalizar(database)
 db=np.zeros((database.shape[0],4))
 db[:,0]=database[:,0]
@@ -106,4 +149,3 @@ pr[:,3]=procesado[:,15:50].sum(axis=1)
 labels1 = artesanal_classifier(procesado)
 mov.color_curve(df, labels1, 2048)
 '''
-

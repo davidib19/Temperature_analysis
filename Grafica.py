@@ -8,18 +8,19 @@ import numpy as np
 import movimiento as mov
 import pickle as pkl
 import pandas as pd
-from matplotlib.collections import LineCollection
 from matplotlib.colors import ListedColormap, BoundaryNorm
+import scipy.signal
+
 
 plt.style.use("seaborn")
 mpl.rcParams.update(
     {
         "axes.titlesize": 14,
-        "font.size": 14,
+        "font.size": 12,
         "axes.labelsize": 12,
-        "legend.fontsize": 10,
-        "xtick.labelsize": 10,
-        "ytick.labelsize": 10,
+        "legend.fontsize": 12,
+        "xtick.labelsize": 12,
+        "ytick.labelsize": 12,
         "figure.figsize": [6, 10],
         "figure.autolayout": True,
         "font.family": "serif",
@@ -29,8 +30,8 @@ mpl.rcParams.update(
         "text.usetex": True
     }
 )
-FONTSIZE = 10
-LEGEND_FONTSIZE = 10
+FONTSIZE = 12
+LEGEND_FONTSIZE = 12
 
 
 def plotacc(campa, document):
@@ -48,7 +49,8 @@ def plotacc(campa, document):
             ax[i].plot(x, y, label='accX')
             ax[i].plot(x, group['accY'], label='accY')
             ax[i].plot(x, group['accZ'], label='accZ')
-            ax[i].set_ylabel(str(group['datetime'].iloc[0].day)+'/'+str(group['datetime'].iloc[0].month),rotation=45)
+            ax[i].set_ylabel(str(group['datetime'].iloc[0].day) + '/' + str(group['datetime'].iloc[0].month),
+                             rotation=45)
             i += 1
         i -= 1
         ax[i].xaxis.set_major_locator(mdates.HourLocator())
@@ -76,7 +78,7 @@ def plotacc(campa, document):
         ax.set_xlim(lim1, lim2)
         ax.tick_params(axis='x', labelrotation=45)
         ax.set_xlabel("Hora del día")
-    fig.suptitle('Aceleración del espécimen ' + document[:-4] + ' ' + campa[0:2]+'/'+campa[3:])
+    fig.suptitle('Aceleración del espécimen ' + document[:-4] + ' ' + campa[0:2] + '/' + campa[3:])
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
 
@@ -84,9 +86,9 @@ def plotacc(campa, document):
 def plotacc_con_etiqueta(campa, document):
     df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
     df['dia'] = df['datetime'].dt.date
-    etiquetas = os.path.exists(os.path.join(os.getcwd(),"Etiquetas", campa, document))
+    etiquetas = os.path.exists(os.path.join(os.getcwd(), "Etiquetas", campa, document))
     if etiquetas:
-        tags = lee.ReadTags(os.path.join(os.getcwd(),"Etiquetas", campa, document))
+        tags = lee.ReadTags(os.path.join(os.getcwd(), "Etiquetas", campa, document))
         print(tags)
     groups = df.groupby('dia')
     fig, ax = plt.subplots(groups.ngroups, 1, sharex=True, sharey=False)
@@ -106,8 +108,10 @@ def plotacc_con_etiqueta(campa, document):
                 for j in range(len(tags.index)):
                     if tags['date'][j] == name:
                         print(tags['date'][j])
-                        ax[i].text(mdates.date2num(df['datetime'].iloc[0].replace(hour=tags['time'][j].hour,minute=tags['time'][j].minute,
-                                                                          second = tags['time'][j].second)),0,s=str(tags['tag'][j]),fontsize=20)
+                        ax[i].text(mdates.date2num(
+                            df['datetime'].iloc[0].replace(hour=tags['time'][j].hour, minute=tags['time'][j].minute,
+                                                           second=tags['time'][j].second)), 0, s=str(tags['tag'][j]),
+                                   fontsize=20)
             i += 1
         i -= 1
 
@@ -134,7 +138,7 @@ def plotacc_con_etiqueta(campa, document):
                         ax.text(mdates.date2num(
                             df['datetime'].iloc[0].replace(hour=tags['time'][j].hour, minute=tags['time'][j].minute,
                                                            second=tags['time'][j].second)), 0, s=str(tags['tag'][j]),
-                                   fontsize=20)
+                            fontsize=20)
         ax.xaxis.set_major_locator(mdates.HourLocator())
         ax.xaxis.set_minor_locator(mdates.MinuteLocator())
         timeFmt = mdates.DateFormatter("%H:%M")
@@ -149,9 +153,11 @@ def plotacc_con_etiqueta(campa, document):
 
 def plot_two_tortoises(campa, dia, t1, t2):
     df1 = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, t1))
-    df1 = df1[(df1['datetime'] > dia.replace(hour=6, minute=0, second=0))&(df1['datetime'] < dia.replace(hour=23, minute=59, second=59))]
+    df1 = df1[(df1['datetime'] > dia.replace(hour=6, minute=0, second=0)) & (
+                df1['datetime'] < dia.replace(hour=23, minute=59, second=59))]
     df2 = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, t2))
-    df2 = df2[(df2['datetime'] > dia.replace(hour=6, minute=0, second=0))&(df2['datetime'] < dia.replace(hour=23, minute=59, second=59))]
+    df2 = df2[(df2['datetime'] > dia.replace(hour=6, minute=0, second=0)) & (
+                df2['datetime'] < dia.replace(hour=23, minute=59, second=59))]
     fig, ax = plt.subplots(2, 1, sharex=True, sharey=False)
     lim1 = mdates.date2num(dia.replace(hour=8, minute=0, second=0))
     lim2 = mdates.date2num(dia.replace(hour=21, minute=59, second=59))
@@ -293,11 +299,11 @@ def histograma_temperatura_vs_movimiento():
     movs, bmov = np.histogram(m['Temperatura'], bins=np.arange(15, 38, 2.5), density=False)
     movs = movs * 0.3712 / 60
     quieto = quieto * 0.3712 / 60
-    axs[0].bar(np.arange(15, 36, 2.5), movs/(movs+quieto), width=2.5, align='edge')
-    axs[1].bar(np.arange(15, 36, 2.5), quieto/(movs+quieto), width=2.5, align='edge')
+    axs[0].bar(np.arange(15, 36, 2.5), movs / (movs + quieto), width=2.5, align='edge')
+    axs[1].bar(np.arange(15, 36, 2.5), quieto / (movs + quieto), width=2.5, align='edge')
     axs[0].title.set_text('Movimiento')
     axs[1].title.set_text('Quietud')
-    #plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'todosimmu.png'))
+    # plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'todosimmu.png'))
     plt.show()
 
 
@@ -320,9 +326,10 @@ def colorcurve(campa, document):
                     x = mdates.date2num(
                         group['datetime'] - datetime.timedelta(days=name - next(iter(groups.groups.keys()))))
                     y = group['tempIMU_C']
-                    ax[i].scatter(x, y, c=group['rangos'], cmap=cmap, norm=norm, s=1, label='Temperatura sobre caparazón')
-                    ax[i].plot(x, group['Temperatura_campo'], color='b',label='Temperatura ambiente')
-                    ax[i].set_ylabel(str(group['datetime'].iloc[0].day)+'/'+str(group['datetime'].iloc[0].month))
+                    ax[i].scatter(x, y, c=group['rangos'], cmap=cmap, norm=norm, s=1,
+                                  label='Temperatura sobre caparazón')
+                    ax[i].plot(x, group['Temperatura_campo'], color='b', label='Temperatura ambiente')
+                    ax[i].set_ylabel(str(group['datetime'].iloc[0].day) + '/' + str(group['datetime'].iloc[0].month))
                     i += 1
                 i -= 1
                 ax[i].xaxis.set_major_locator(mdates.HourLocator())
@@ -333,19 +340,63 @@ def colorcurve(campa, document):
                 ax[i].tick_params(axis='x', labelrotation=45)
                 ax[i].set_xlabel("Hora del dia")
                 ax[0].legend()
-                #fig.suptitle('Temperatura ambiente y sobre el caparazón del espécimen ' + document[:-4]+ ' ' + campa[:2]+'/'+campa[3:])
+                # fig.suptitle('Temperatura ambiente y sobre el caparazón del espécimen ' + document[:-4]+ ' ' + campa[:2]+'/'+campa[3:])
                 fig.supylabel("Temperatura")
                 plt.subplots_adjust(wspace=0, hspace=0)
                 # plt.tight_layout()
-                plt.savefig(os.path.join(os.getcwd(), 'Color_curves','tesis.pdf'))
+                plt.savefig(os.path.join(os.getcwd(), 'Color_curves', 'tesis.pdf'))
                 plt.show()
 
+
 def histograma_etiquetas():
-    todos = pd.DataFrame({'date', 'time','tag','observation'})
-    for campa in os.listdir(os.path.join(os.getcwd(), 'Etiquetas')):
-        for document in os.listdir(os.path.join(os.getcwd(), 'Etiquetas', campa)):
+    todos = pd.DataFrame({'date', 'time', 'tag', 'observation'})
+    for campa in os.listdir(lee.etiqueta_path):
+        for document in os.listdir(os.path.join(lee.etiqueta_path, campa)):
             if document[-3:] == 'csv':
-                print(campa+document)
-                df = lee.ReadTags(os.path.join(os.getcwd(), 'Etiquetas', campa, document))
+                print(campa + document)
+                df = lee.ReadTags(os.path.join(lee.etiqueta_path, campa, document))
                 todos = pd.concat([todos, df], ignore_index=True)
     return todos
+
+
+def database_etiquetada():
+    db = np.zeros((1, 515, 3))
+    for campa in os.listdir(lee.etiqueta_path):
+        for document in os.listdir(os.path.join(lee.etiqueta_path, campa)):
+            if document[-3:] == 'csv' and os.path.exists(os.path.join(mov.tortugometro_path, campa, document)):
+                dftags = lee.ReadTags(os.path.join(lee.etiqueta_path, campa, document))
+                dfacc = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
+                for i in dftags.index:
+                    f = dftags.loc[i, 'date']
+                    h = dftags.loc[i, 'time']
+                    t = datetime.datetime(year=f.year,month=f.month, day=f.day, hour=h.hour,minute=h.minute,second=h.second)
+                    coincidence = dfacc[(dfacc['datetime']>t) & (dfacc['datetime']<t+datetime.timedelta(minutes=4))]
+                    if len(coincidence.index) >= 514:
+                        j = coincidence.index[0]
+                        aux = np.zeros((1, 515, 3))
+                        aux[0, 0, :] = dftags.loc[i, 'tag']
+                        aux[0, 1:, 0] = dfacc.loc[j:j + 513, 'accX']
+                        aux[0, 1:, 1] = dfacc.loc[j:j + 513, 'accY']
+                        aux[0, 1:, 2] = dfacc.loc[j:j + 513, 'accZ']
+                        db = np.concatenate((db, aux), axis=0)
+    db = np.delete(db, 0, 0)
+    with open(os.path.join(os.getcwd(),'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'), 'wb') as handle:
+        pkl.dump(db, handle)
+
+
+def acc_conv_dsp():
+    with open(os.path.join(os.getcwd(),'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'), 'rb') as handle:
+        db = pkl.load(handle)
+        print(db.shape)
+    fig, axs = plt.subplots(2,3)
+    camina = db[db[:,0,0]==0]
+    for i in np.arange(2):
+        conv = scipy.signal.fftconvolve(camina[i,1:513,0],np.concatenate((camina[i,1:513,1],camina[i,1:513,1])),mode='same')
+        f, dsp = scipy.signal.periodogram(conv)
+        axs[i, 0].plot(camina[i, 1:, 0])
+        axs[i, 0].plot(camina[i, 1:, 1])
+        axs[i, 0].plot(camina[i, 1:, 2])
+        axs[i,1].plot(conv)
+        axs[i,2].plot(f,dsp,'-o')
+    plt.show()
+

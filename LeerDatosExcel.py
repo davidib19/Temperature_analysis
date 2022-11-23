@@ -3,6 +3,7 @@ import datetime
 import os
 
 data_path = os.path.join(os.getcwd(), "Datos")
+etiqueta_path = os.path.join(os.getcwd(), "Etiquetas")
 
 
 def toDatetime(string_datetime):
@@ -47,12 +48,14 @@ def ReadIMUData(path):
         lambda r: datetime.datetime.combine(r['date'], r['timeGMT']) - datetime.timedelta(hours=3), 1)
     return df.drop(['date', 'timeGMT'], axis=1)
 
+
 def ReadTags(string):
     """Lee el archivo de tags y lo guarda en un dataframe con las columnas datetime y tag"""
     df = pd.read_csv(string, sep=';', header=None, names=['date', 'time','tag','observation'])
     df['date'] = pd.to_datetime(df['date'], format='%d/%m/%Y')
     df['time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
     return df
+
 
 def formatIMU(stringhour):
     microsecond = int(stringhour[-3:]) * 1000

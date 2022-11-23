@@ -8,6 +8,7 @@
       <excludeFolder url="file://$MODULE_DIR$/Imu_vs_ibutton" />
       <excludeFolder url="file://$MODULE_DIR$/Movimiento_vs_hora" />
       <excludeFolder url="file://$MODULE_DIR$/aceleraciones" />
+      <excludeFolder url="file://$MODULE_DIR$/Etiquetas_crudo" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (Temperature_analysis)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

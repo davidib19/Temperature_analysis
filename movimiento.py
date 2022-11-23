@@ -10,7 +10,7 @@ import matplotlib as mpl
 import LeerDatosExcel as lee
 import pickle as pkl
 
-plt.style.use("seaborn")
+#plt.style.use("seaborn")
 mpl.rcParams.update(
     {
         "axes.titlesize": 14,
@@ -89,24 +89,38 @@ def histograma_rangos(y):
 
 
 def color_curve(df, rangos, window):
-    x = mdates.date2num(df['datetime'])
-    y = df['accX'].to_numpy()
-    aux = int(y.shape[0] / window) * window
-    points = np.array([x[:aux], y[:aux]]).T.reshape(int(aux/window), window, 2)
-    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
     cmap = ListedColormap(['r', 'y', 'g','k'])
-    norm = BoundaryNorm([-0.5, 0.5, 1.5, 2.5,3.5], cmap.N)
-    lc = LineCollection(segments, cmap=cmap, norm=norm)
-    lc.set_array(rangos)
-    lc.set_linewidth(2)
-    fig, ax = plt.subplots()
-    line = ax.add_collection(lc)
-    fig.colorbar(line, ax=ax)
-    ax.xaxis.set_major_locator(mdates.DayLocator())
-    ax.xaxis.set_minor_locator(mdates.HourLocator())
-    timeFmt = mdates.DateFormatter("%d %H")
-    ax.xaxis.set_major_formatter(timeFmt)
-    ax.autoscale_view()
+    norm = BoundaryNorm([-0.01, 0.99, 1.99, 2.99, 3.99], cmap.N)
+    df['dia'] = df['datetime'].dt.date
+    groups = df.groupby('dia')
+    fig, ax = plt.subplots(groups.ngroups, 1, sharex=True, sharey=True)
+    lim1 = mdates.date2num(df['datetime'].iloc[0].replace(hour=8, minute=0, second=0))
+    lim2 = mdates.date2num(df['datetime'].iloc[0].replace(hour=20, minute=59, second=59))
+    i = 0
+    for name, group in groups:
+        x = mdates.date2num(group['datetime'] - (name - next(iter(groups.groups.keys()))))
+        y = group['accX']
+        num_lines = int(np.trunc(y.shape[0] / window))
+        x = np.stack(np.split(x[:window * num_lines], num_lines), axis=-1)
+        y = np.stack(np.split(y[:window * num_lines], num_lines), axis=-1)
+        points = np.stack((x.T, y.T), axis=-1)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        lc = LineCollection(segments, cmap=cmap, norm=norm)
+        lc.set_array(rangos[i])
+        ax[i].add_collection(lc)
+        ax[i].set_ylabel(str(group['datetime'].iloc[0].day) + '/' + str(group['datetime'].iloc[0].month),
+                             rotation=45)
+        i += 1
+    i -= 1
+    ax[i].xaxis.set_major_locator(mdates.HourLocator())
+    ax[i].xaxis.set_minor_locator(mdates.MinuteLocator())
+    timeFmt = mdates.DateFormatter("%H:%M")
+    ax[i].xaxis.set_major_formatter(timeFmt)
+    ax[i].set_xlim(lim1, lim2)
+    ax[i].set_ylim(-8000,10000)
+    ax[i].tick_params(axis='x', labelrotation=45)
+    ax[i].set_xlabel("Hora del día")
 
     plt.show()
 
