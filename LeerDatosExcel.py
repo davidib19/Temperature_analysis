@@ -57,6 +57,14 @@ def ReadTags(string):
     return df
 
 
+def ReadMyTags():
+    df = pd.read_csv(os.path.join(os.getcwd(), "aceleraciones_etiquetadas", "mis_etiquetas.csv"), sep=';')
+    df['inicio']=pd.to_datetime(df['fecha']+df['hora_inicio'], format='%d/%m/%Y%H:%M')
+    df['fin']=pd.to_datetime(df['fecha']+df['hora_final'], format='%d/%m/%Y%H:%M')
+    df=df.drop(['fecha','hora_inicio','hora_final'],axis=1)
+    return df
+
+
 def formatIMU(stringhour):
     microsecond = int(stringhour[-3:]) * 1000
     second = int(stringhour[-6:-4])

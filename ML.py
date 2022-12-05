@@ -1,11 +1,12 @@
 import numpy as np
 import scipy.signal
-
+import datetime
 import Finding_features as ft
 import os
 import movimiento as mov
 import pickle as pkl
 import sklearn.cluster
+import LeerDatosExcel as Lee
 import matplotlib.pyplot as plt
 from copy import copy
 from matplotlib.colors import LogNorm
@@ -27,65 +28,72 @@ with open('database.pkl', 'wb') as f:
     pkl.dump(database, f)
 """
 
-# unpickle database22
+
+def generate_database(save=False):
+    database = np.zeros((1, 257))
+    for campa in os.listdir(mov.tortugometro_path):
+        for document in os.listdir(os.path.join(mov.tortugometro_path, campa)):
+            if document[-3:] == 'csv':
+                df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document),
+                                     cols=['date', 'timeGMT', 'accX', 'accY', 'accZ'])
+                df['date'] = df['datetime'].dt.date
+                for name, group in df.groupby('date'):
+                    database = np.concatenate((database, ft.calculate_features(group)))
+    print(database.shape)
+    # pickle the data base
+    if save:
+        with open('database.pkl', 'wb') as f:
+            pkl.dump(database, f)
+    return database
+
+def mi_database():
+    tags = Lee.ReadMyTags()
+    print(tags)
+    db = np.zeros((1, 258))
+    for j in tags.index:
+        df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, tags['campa'][j], tags['tortuga'][j] + '.csv'))
+        df = df[(df['datetime'] > tags['inicio'][j]) & (df['datetime'] < tags['fin'][j])]
+        data = ft.calculate_features(df)
+        etiqueta = np.ones_like(data[:, 0]) * tags['etiqueta'][j].reshape((-1, 1))
+        data = np.concatenate((etiqueta.T, data), axis=1)
+        print(data.shape)
+        db = np.concatenate((db, data), axis=0)
+    db = db[1:, :]
+    with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'mi_database.pkl'),
+              'wb') as handle:
+        pkl.dump(db, handle)
+    print('database saved at mi_database.pkl')
+# unpickle database
 with open('database.pkl', 'rb') as f:
     database = pkl.load(f)
 database = np.delete(database, 0, axis=0)
 
 
-def normalizar(database):
-    for i in range(database.shape[0]):
-        # for j in np.arange(4,35):
-        #    if database[i,j]<1000:
-        #        database[i,j]=0
-        if np.max(database[i, 4:50] > 0):
-            database[i, 4:50] = database[i, 4:50] / np.sum(database[i, 4:50])
-        if database[i, 0] < 1:
-            database[i, 0] = 1
-    database[:, 0] = np.log10(database[:, 0])
-    database = np.nan_to_num(database)
-    return database[:, :50]
+def artesanal_classifier(data):
+    labels =np.zeros_like(data[:,0])
+    labels[data[:, 0] > 5] = 5
+    labels[((data[:, 3] > 0.6) |(data[:, 4] > 0.6)) & (data[:, 0] > 5)] = 2
+    labels[((data[:, 1] > 0.6) & (data[:, 0] > 5))] = 1
+    labels[((np.argmax(data[:, 1:], axis=1) == 0) & (data[:, 6] > 0.08) & (data[:, 0] > 5) & (np.amax(data[:, 1:],
+                                                                                                    axis=1) > 0.2))]=3
+    labels[((data[:, 0]) > 5) & (np.sum(data[:, 10:],axis=1) > 0.4) & (np.amax(data[:, 1:],axis=1)<0.5)] = 4
+    return labels
 
 
-def artesanal_classifier(database):
-    label = np.zeros(database.shape[0])
-    for i in range(database.shape[0]):
-        if database[i, 0] < 2:
-            label[i] = 0
-        else:
-            if 1 > np.sum(database[i, 4:9]) > 0.8:
-                label[i] = 1
-            else:
-                if np.sum(database[i, 4:14]) > 0.5:
-                    label[i] = 2
-                else:
-                    label[i] = 3
-    return label
-
-
-def series_histogram(database):
-    x = np.arange(4, 50)
-    Y = database[:, 4:50]
-    num_fine = 800
-    x_fine = np.linspace(x.min(), x.max(), num_fine)
-    y_fine = np.empty((Y.shape[1], num_fine), dtype=float)
-    for i in range(Y.shape[1]):
-        y_fine[i, :] = np.interp(x_fine, x, Y[i, :])
-    y_fine = y_fine.flatten()
-    x_fine = np.matlib.repmat(x_fine, Y.shape[1], 1).flatten()
-    fig, ax = plt.subplots()
-    cmap = copy(plt.cm.plasma)
-    cmap.set_bad(cmap(0))
-    h, xedges, yedges = np.histogram2d(x_fine, y_fine, bins=[50, 100])
-    pcm = ax.pcolormesh(xedges, yedges, h.T, cmap=cmap,
-                        norm=LogNorm(vmax=1.5e2), rasterized=True)
-    fig.colorbar(pcm, ax=ax, label="# points", pad=0)
-    ax.set_title("2d histogram and linear color scale")
-    plt.show()
+def clustering(n):
+    db = np.delete(database, database[:, 0] > 5, 0)
+    db[:, 14] = np.sum(db[:, 14:], axis=1)
+    db = db[:, 1:15]
+    db =db[~np.isnan(db).any(axis=1),:]
+    minibatch = sklearn.cluster.MiniBatchKMeans(n_clusters=n)
+    labels = minibatch.fit_predict(db)
+    with open('minibatch.pkl', 'wb') as f:
+        pkl.dump(minibatch, f)
+    return labels, minibatch
 
 
 def Hopfield(examples, beta, e):
-    return np.round(examples @ np.exp(beta * examples.T @ e) / sum(np.exp(beta * examples.T @ e)),decimals=2)
+    return np.round(examples @ (np.exp(beta * examples.T @ e) / sum(np.exp(beta * examples.T @ e))),decimals=2)
 
 
 def make_examples():
@@ -93,32 +101,101 @@ def make_examples():
               'rb') as handle:
         db = pkl.load(handle)
     examples = np.zeros((14, 3))
-    for etiqueta in [1, 2,3]:
+    for etiqueta in [1]:
         aux = db[db[:, 0, 0] == etiqueta]
-        conv0 = scipy.signal.fftconvolve(aux[0, 1:513, 0], np.concatenate((aux[0, 1:513, 1], aux[0, 1:513, 1])),
+        conv0 = scipy.signal.fftconvolve(aux[1, 1:513, 0], np.concatenate((aux[1, 1:513, 1], aux[1, 1:513, 1])),
                                          mode='same')
         conv0 -= np.mean(conv0)
-        conv0 /= np.trapz(conv0**2,dx=0.174)**0.5
-        f, dsp = scipy.signal.periodogram(conv0,fs=1/0.174,scaling='density')
-        examples[:, etiqueta-1] = np.round(dsp[:14], decimals=2)
+        conv0 /= np.trapz(conv0 ** 2, dx=0.174) ** 0.5
+        f, dsp = scipy.signal.periodogram(conv0, fs=1 / 0.174, scaling='density')
+        examples[:, etiqueta - 1] = dsp[1:15]
+        examples[-1,etiqueta -1] =np.sum(dsp[14:])
+    examples[2, 1] = 1.
+    df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, '11_2021', 'T11.csv'))
+    df = df[(df['datetime'] > datetime.datetime(year=2021, month=11, day=21, hour=16, minute=20, second=0)) & (
+                df['datetime'] < datetime.datetime(year=2021, month=11, day=21, hour=16, minute=29, second=0))]
+    acc = df[['accX', 'accY', 'accZ']].to_numpy()
+    del df
+    acc = ft.make_windows(acc, 512)
+    conv = ft.convolve_signal(acc)
+    conv = ft.normalize_convolution(conv)
+    f, dsp = scipy.signal.periodogram(conv, fs=1 / 0.174, scaling='density', axis=1)
+    examples[:, 2] = dsp[0, 1:15]
+    examples[-1, 2] = np.sum(dsp[0,14:])
+
+    examples=np.round(examples,decimals=2)
+    # pickle examples
+    with open('examples.pkl', 'wb') as f:
+        pkl.dump(examples, f)
     return examples
 
 
-def predict_Hopfield(acc, beta, examples, precision):
-    conv = scipy.signal.fftconvolve(acc[:, 0], np.concatenate((acc[:, 1], acc[:, 1])), mode='same')
-    conv -= np.mean(conv)
-    if np.amax(conv) - np.amin(conv) < 10 ** 5:
-        return 0
-    conv /= np.trapz(conv ** 2, dx=0.174) ** 0.5
-    f, dsp = scipy.signal.periodogram(conv,fs=1/0.174,scaling='density')
-    out = Hopfield(examples, beta, np.round(dsp[:14], decimals=2))
-    for i in [1,2,3]:
-        if np.sum(np.abs(out-examples[:, i]))<=precision:
-            return 2
-    if np.sum(np.abs(out-examples[:, 0]))<=precision:
-           return 1
+def predict_Hopfield(dsp, beta, examples, precision):
+    labels=np.zeros_like(dsp[:,0])
+    for j in np.arange(labels.shape[0]):
+        if dsp[j, 0] > 5:
+            labels[j] = 5
+            dsp[j,14]=np.sum(dsp[j,14:])
+            out = Hopfield(examples, beta, np.round(dsp[j, 1:15],decimals=2))
+            for i in np.arange(examples.shape[1]):
+                if np.sum(np.abs(out - examples[:, i])) <= precision:
+                    labels[j] = i+1
+    labels[labels == 3] = 4
+    return labels
 
-    return 3
+
+def test_methods_unlabeled(df):
+    dsp = ft.calculate_features(df)
+    labels_artesanal = artesanal_classifier(dsp)
+    print(labels_artesanal)
+
+    examples = make_examples()
+    # examples = examples[:,np.array([0,1,3])]
+    # examplest= examples.T
+    # print(examplest)
+    # aux = np.ones((3,1))*6
+    # examplest=np.c_[aux,examplest]
+    labels_hopfield = predict_Hopfield(dsp, 10, examples, 0.2)
+    print(labels_hopfield)
+    dummy, minibatch = clustering(5)
+    labels_cluster=np.zeros_like(labels_hopfield)
+    dsp[:, 14] = np.sum(dsp[:, 14:],axis=1)
+    labels_cluster[dsp[:,0]>5] = minibatch.predict(dsp[dsp[:,0]>5, 1:15])+1
+    print(labels_cluster)
+    return labels_artesanal, labels_hopfield, labels_cluster
+
+
+def test_methods_labeled(data):
+    true_labels = data[:, 0]
+    #acc = data[:, 1:513, :]
+    #acc = np.swapaxes(acc, 0, 1)
+    #acc = np.swapaxes(acc, 1, 2)
+    #conv = ft.convolve_signal(acc)
+    #conv_rank = np.log10(np.amax(conv, axis=1) - np.amin(conv, axis=1))
+    #conv = ft.normalize_convolution(conv)
+    # normalizes conv so its mean is 0 and its power is 1
+    #f, dsp = scipy.signal.periodogram(conv, fs=1/0.174, scaling='density', axis=1)
+    #dsp[:, 0] = conv_rank
+    dsp=data[:, 1:]
+    labels_artesanal = artesanal_classifier(dsp)
+    #print(labels_artesanal)
+    # examples = make_examples()
+    with open('examples.pkl', 'rb') as f:
+        examples = pkl.load(f)
+    # examples = examples[:,np.array([0,1,3])]
+    # examplest= examples.T
+    # print(examplest)
+    # aux = np.ones((3,1))*6
+    # examplest=np.c_[aux,examplest]
+    labels_hopfield = predict_Hopfield(dsp, 10, examples, 0.2)
+    #print(labels_hopfield)
+    with open('minibatch.pkl', 'rb') as f:
+        minibatch = pkl.load(f)
+    #dummy, minibatch = clustering(5)
+    labels_cluster = np.zeros_like(labels_hopfield)
+    labels_cluster[dsp[:,0]>5] = minibatch.predict(dsp[dsp[:, 0] > 5, 1:15])+1
+    #print(labels_cluster)
+    return true_labels, labels_artesanal, labels_hopfield, labels_cluster
 
 
 '''

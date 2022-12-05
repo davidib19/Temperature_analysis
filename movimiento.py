@@ -35,12 +35,10 @@ def toTimestamp(d):
   return datetime.datetime.timestamp(d)
 
 
-def ReadIMUData(path):
+def ReadIMUData(path, cols=['date', 'timeGMT', 'accX', 'accY', 'accZ', 'tempIMU_C', 'lat',  'lon']):
     """Lee los datos del tortugómetro con el formato que vienen y los guarda en un pandas dataframe con una columna
     en tipo datetime.datetime transformada a hora de Argentina."""
-    df = pd.read_csv(path, parse_dates=['date'], converters={'timeGMT': formatIMU}, sep=';', usecols=['date', 'timeGMT',
-                                                                                                      'accX', 'accY', 'accZ',
-                                                                                                      'tempIMU_C','lat','lon'])
+    df = pd.read_csv(path, parse_dates=['date'], converters={'timeGMT': formatIMU}, sep=';', usecols=cols)
     df['datetime'] = df.apply(
         lambda r: datetime.datetime.combine(r['date'], r['timeGMT']) - datetime.timedelta(hours=3), 1)
     return df.drop(['date', 'timeGMT'], axis=1)
@@ -142,9 +140,9 @@ def movimiento_vs_T(df, rangos):
             else:
                 return False, pd.DataFrame(columns=['rangos', 'Temperatura'])
 
-    dict = {'datetime': df['datetime'][:rangos.size*128:128], 'rangos': rangos,
-            'Temperatura_campo': np.interp(df['datetime'][:rangos.size*128:128].apply(toTimestamp), ibutton['datetime'].apply(toTimestamp), ibutton[temp]),
-            'tempIMU_C':df['tempIMU_C'][:rangos.size*128:128]}
+    dict = {'datetime': df['datetime'][:rangos.size*512:512], 'rangos': rangos,
+            'Temperatura_campo': np.interp(df['datetime'][:rangos.size*512:512].apply(toTimestamp), ibutton['datetime'].apply(toTimestamp), ibutton[temp]),
+            'tempIMU_C':df['tempIMU_C'][:rangos.size*512:512]}
     df2 = pd.DataFrame(data=dict)
     #fig, axs = plt.subplots(2, 1, sharex=True, sharey=True)
     #df2.loc[df2['rangos'] > 10**6].hist(column='Temperatura', ax=axs[0])

@@ -10,35 +10,65 @@ import pickle as pkl
 import pandas as pd
 from matplotlib.colors import ListedColormap, BoundaryNorm
 import scipy.signal
-
+import Finding_features as ft
 
 plt.style.use("seaborn")
 mpl.rcParams.update(
     {
-        "axes.titlesize": 14,
-        "font.size": 12,
-        "axes.labelsize": 12,
-        "legend.fontsize": 12,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
-        "figure.figsize": [6, 10],
+        "text.usetex": True,
+        "axes.titlesize": 10,
+        "font.size": 10,
+        "axes.labelsize": 10,
+        "legend.fontsize": 8,
+        "xtick.labelsize": 6,
+        "ytick.labelsize": 6,
+        "xtick.major.size": 6,
+        "ytick.major.size": 6,
+        "figure.figsize": [6.1, 4],
         "figure.autolayout": True,
-        "font.family": "serif",
-        "font.sans-serif": ["Computer modern"],
         "savefig.format": 'pdf',
         "savefig.bbox": 'tight',
-        "text.usetex": True
+        "axes.linewidth": 1,
+        "lines.linewidth": 1,
+        "lines.markersize": 1,
     }
 )
-FONTSIZE = 12
-LEGEND_FONTSIZE = 12
+
+
+def plotsegment(df):
+    df['dia'] = df['datetime'].dt.date
+    groups = df.groupby('dia')
+    fig, ax = plt.subplots()
+    for name, group in groups:
+        x = mdates.date2num(group['datetime'])
+        y = group['accX']
+        ax.plot(x, y, label='accX')
+        ax.plot(x, group['accY'], label='accY')
+        ax.plot(x, group['accZ'], label='accZ')
+        ax.plot(x,(y**2+group['accY']**2+group['accZ']**2)**0.5, label='accTotal', color='black')
+        ax.set_ylabel(str(group['datetime'].iloc[0].date()))
+        ax.xaxis.set_major_locator(mdates.HourLocator())
+        ax.xaxis.set_minor_locator(mdates.MinuteLocator())
+        timeFmt = mdates.DateFormatter("%H:%M")
+        ax.xaxis.set_major_formatter(timeFmt)
+        ax.tick_params(axis='x', labelrotation=45)
+        ax.set_xlabel("Hora")
+        ax.set_ylabel("Aceleración (u)")
+        ax.legend(loc=1, bbox_to_anchor=(0.3, 0.75))
+
+        #for i in np.arange(int(np.trunc(x.shape[0]/512))+1):
+        #    ax.axvline(x=x[512*i])
+    plt.subplots_adjust(wspace=0, hspace=0)
+
+    plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/unidades2.pdf')
+    plt.show()
 
 
 def plotacc(campa, document):
     df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
     df['dia'] = df['datetime'].dt.date
     groups = df.groupby('dia')
-    fig, ax = plt.subplots(groups.ngroups, 1, sharex=True, sharey=False)
+    fig, ax = plt.subplots(groups.ngroups, 1, sharex='all',figsize=(6.1, 1.5*groups.ngroups))
     lim1 = mdates.date2num(df['datetime'].iloc[0].replace(hour=8, minute=0, second=0))
     lim2 = mdates.date2num(df['datetime'].iloc[0].replace(hour=20, minute=59, second=59))
     i = 0
@@ -49,8 +79,8 @@ def plotacc(campa, document):
             ax[i].plot(x, y, label='accX')
             ax[i].plot(x, group['accY'], label='accY')
             ax[i].plot(x, group['accZ'], label='accZ')
-            ax[i].set_ylabel(str(group['datetime'].iloc[0].day) + '/' + str(group['datetime'].iloc[0].month),
-                             rotation=45)
+            ax[i].set_ylabel(str(group['datetime'].iloc[0].day) + '/' + str(group['datetime'].iloc[0].month))
+            ax[i].yaxis.set_label_position("right")
             i += 1
         i -= 1
         ax[i].xaxis.set_major_locator(mdates.HourLocator())
@@ -78,8 +108,11 @@ def plotacc(campa, document):
         ax.set_xlim(lim1, lim2)
         ax.tick_params(axis='x', labelrotation=45)
         ax.set_xlabel("Hora del día")
-    fig.suptitle('Aceleración del espécimen ' + document[:-4] + ' ' + campa[0:2] + '/' + campa[3:])
+    fig.suptitle('Tortuga' + document[:-4] + ' ' + campa[0:2] + '/' + campa[3:])
+    fig.supylabel('Aceleración (u)')
     plt.subplots_adjust(wspace=0, hspace=0)
+    plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/aceleracion.pdf')
+
     plt.show()
 
 
@@ -91,7 +124,7 @@ def plotacc_con_etiqueta(campa, document):
         tags = lee.ReadTags(os.path.join(os.getcwd(), "Etiquetas", campa, document))
         print(tags)
     groups = df.groupby('dia')
-    fig, ax = plt.subplots(groups.ngroups, 1, sharex=True, sharey=False)
+    fig, ax = plt.subplots(groups.ngroups, 1, sharex='all')
     lim1 = mdates.date2num(df['datetime'].iloc[0].replace(hour=8, minute=0, second=0))
     lim2 = mdates.date2num(df['datetime'].iloc[0].replace(hour=20, minute=59, second=59))
     i = 0
@@ -111,7 +144,7 @@ def plotacc_con_etiqueta(campa, document):
                         ax[i].text(mdates.date2num(
                             df['datetime'].iloc[0].replace(hour=tags['time'][j].hour, minute=tags['time'][j].minute,
                                                            second=tags['time'][j].second)), 0, s=str(tags['tag'][j]),
-                                   fontsize=20)
+                            fontsize=20)
             i += 1
         i -= 1
 
@@ -154,11 +187,11 @@ def plotacc_con_etiqueta(campa, document):
 def plot_two_tortoises(campa, dia, t1, t2):
     df1 = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, t1))
     df1 = df1[(df1['datetime'] > dia.replace(hour=6, minute=0, second=0)) & (
-                df1['datetime'] < dia.replace(hour=23, minute=59, second=59))]
+            df1['datetime'] < dia.replace(hour=23, minute=59, second=59))]
     df2 = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, t2))
     df2 = df2[(df2['datetime'] > dia.replace(hour=6, minute=0, second=0)) & (
-                df2['datetime'] < dia.replace(hour=23, minute=59, second=59))]
-    fig, ax = plt.subplots(2, 1, sharex=True, sharey=False)
+            df2['datetime'] < dia.replace(hour=23, minute=59, second=59))]
+    fig, ax = plt.subplots(2, 1, sharex='all')
     lim1 = mdates.date2num(dia.replace(hour=8, minute=0, second=0))
     lim2 = mdates.date2num(dia.replace(hour=21, minute=59, second=59))
     x1 = mdates.date2num(df1['datetime'])
@@ -275,23 +308,25 @@ def histograma_movimiento_por_horadeldia(campanias):
 
 
 def histograma_temperatura_vs_movimiento():
-    todos = pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
-    for campa in os.listdir(mov.tortugometro_path):
-        for document in os.listdir(os.path.join(mov.tortugometro_path, campa)):
-            if document[-3:] == 'csv':
-                df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
-                rangos = mov.movimiento_por_convolucion(df)
-                boo, df2 = mov.movimiento_vs_T(df, rangos)
-                if boo:
-                    aux = pd.DataFrame(
-                        {'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
-                    aux['tempIMU_C'] = df['tempIMU_C'].iloc[:rangos.size * 128:128]
-                    aux['rangos'] = rangos
-                    todos = pd.concat([todos, aux], ignore_index=True)
-    fig, axs = plt.subplots(2, 1, sharex=True, sharey=False)
-    todos['rangos'] = todos['rangos'].astype(np.float64)
-    todos['tempIMU_C'] = todos['tempIMU_C'].astype(np.float64)
-    todos.to_pickle('todosimu.pkl')
+    #todos = pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
+    #for campa in os.listdir(mov.tortugometro_path):
+    #    for document in os.listdir(os.path.join(mov.tortugometro_path, campa)):
+    #        if document[-3:] == 'csv':
+    #            df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
+    #            rangos = ft.calculate_features(df)
+    #            rangos = rangos[:,0]
+    #            boo, df2 = mov.movimiento_vs_T(df, rangos)
+    #            if boo:
+    #                aux = pd.DataFrame(
+    #                    {'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
+    #                aux['tempIMU_C'] = df['tempIMU_C'].iloc[:rangos.size * 128:128]
+    #                aux['rangos'] = rangos
+    #                todos = pd.concat([todos, aux], ignore_index=True)
+    fig, axs = plt.subplots(2, 1, sharex='all', figsize=[4, 6])
+    #todos['rangos'] = todos['rangos'].astype(np.float64)
+    #todos['tempIMU_C'] = todos['tempIMU_C'].astype(np.float64)
+    #todos.to_pickle('todosimu.pkl')
+    todos = pd.read_pickle('todos.pkl')
 
     q = todos.loc[(10 ** 3 < todos['rangos']) & (todos['rangos'] < 10 ** 5)]
     m = todos.loc[todos['rangos'] > 10 ** 6]
@@ -300,10 +335,12 @@ def histograma_temperatura_vs_movimiento():
     movs = movs * 0.3712 / 60
     quieto = quieto * 0.3712 / 60
     axs[0].bar(np.arange(15, 36, 2.5), movs / (movs + quieto), width=2.5, align='edge')
-    axs[1].bar(np.arange(15, 36, 2.5), quieto / (movs + quieto), width=2.5, align='edge')
-    axs[0].title.set_text('Movimiento')
-    axs[1].title.set_text('Quietud')
-    # plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'todosimmu.png'))
+    axs[1].bar(np.arange(15, 36, 2.5),(movs + quieto)/np.sum(movs+quieto), width=2.5, align='edge')
+
+    axs[0].set_ylabel(r'P(movimiento $\vert$ T)')
+    axs[1].set_ylabel('P(T)')
+    axs[1].set_xlabel('Temperatura (°C)')
+    plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'mov_dado_Tambiente.pdf'))
     plt.show()
 
 
@@ -315,7 +352,7 @@ def colorcurve(campa, document):
         if boo:
             df2['dia'] = df2['datetime'].dt.day
             groups = df2.groupby('dia')
-            fig, ax = plt.subplots(groups.ngroups, 1, sharex=True, sharey=False)
+            fig, ax = plt.subplots(groups.ngroups, 1, sharex='all')
             i = 0
             cmap = ListedColormap(['r', 'y', 'g'])
             norm = BoundaryNorm([0, 10 ** 5, 10 ** 7, 10 ** 10], cmap.N)
@@ -349,14 +386,18 @@ def colorcurve(campa, document):
 
 
 def histograma_etiquetas():
-    todos = pd.DataFrame({'date', 'time', 'tag', 'observation'})
-    for campa in os.listdir(lee.etiqueta_path):
-        for document in os.listdir(os.path.join(lee.etiqueta_path, campa)):
-            if document[-3:] == 'csv':
-                print(campa + document)
-                df = lee.ReadTags(os.path.join(lee.etiqueta_path, campa, document))
-                todos = pd.concat([todos, df], ignore_index=True)
-    return todos
+    with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'),
+              'rb') as handle:
+        db = pkl.load(handle)
+
+    h, b = np.histogram(db[:, 0, 0], bins=np.arange(-0.5, 8.5, 1.), density=False)
+    fig, ax = plt.subplots(figsize=(6.1, 4))
+    ax.bar(['quieto', 'camina', 'hace nido', 'come', 'copulando (m)', 'copulando (h)', 'pelea', 'otros'], h)
+    fig.set_size_inches(6.1, 4)
+    plt.title("Cantidad de etiquetas")
+    plt.xticks(rotation=30)
+    plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/cantidad_etiquetas.pdf')
+    plt.show()
 
 
 def database_etiquetada():
@@ -369,8 +410,10 @@ def database_etiquetada():
                 for i in dftags.index:
                     f = dftags.loc[i, 'date']
                     h = dftags.loc[i, 'time']
-                    t = datetime.datetime(year=f.year,month=f.month, day=f.day, hour=h.hour,minute=h.minute,second=h.second)
-                    coincidence = dfacc[(dfacc['datetime']>t) & (dfacc['datetime']<t+datetime.timedelta(minutes=4))]
+                    t = datetime.datetime(year=f.year, month=f.month, day=f.day, hour=h.hour, minute=h.minute,
+                                          second=h.second)
+                    coincidence = dfacc[
+                        (dfacc['datetime'] > t) & (dfacc['datetime'] < t + datetime.timedelta(minutes=4))]
                     if len(coincidence.index) >= 514:
                         j = coincidence.index[0]
                         aux = np.zeros((1, 515, 3))
@@ -380,23 +423,98 @@ def database_etiquetada():
                         aux[0, 1:, 2] = dfacc.loc[j:j + 513, 'accZ']
                         db = np.concatenate((db, aux), axis=0)
     db = np.delete(db, 0, 0)
-    with open(os.path.join(os.getcwd(),'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'), 'wb') as handle:
+    with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'),
+              'wb') as handle:
         pkl.dump(db, handle)
 
 
-def acc_conv_dsp():
-    with open(os.path.join(os.getcwd(),'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'), 'rb') as handle:
+def acc_conv_dsp(tag=1):
+    with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'),
+              'rb') as handle:
         db = pkl.load(handle)
-        print(db.shape)
-    fig, axs = plt.subplots(2,3)
-    camina = db[db[:,0,0]==0]
+    fig, axs = plt.subplots(2, 3, sharex='col', sharey='col', figsize=[6.1, 8])
+    actividad = db[db[:, 0, 0] == tag]
+    acc = actividad[:, 1:513, :]
+    acc = np.swapaxes(acc, 0, 1)
+    t = 0.174 * np.arange(512)
+    acc = np.swapaxes(acc, 1, 2)
+    conv = ft.convolve_signal(acc)
+    conv = ft.normalize_convolution(conv)
+    f, dsp = scipy.signal.periodogram(conv, fs=1 / 0.174, axis=1)
     for i in np.arange(2):
-        conv = scipy.signal.fftconvolve(camina[i,1:513,0],np.concatenate((camina[i,1:513,1],camina[i,1:513,1])),mode='same')
-        f, dsp = scipy.signal.periodogram(conv)
-        axs[i, 0].plot(camina[i, 1:, 0])
-        axs[i, 0].plot(camina[i, 1:, 1])
-        axs[i, 0].plot(camina[i, 1:, 2])
-        axs[i,1].plot(conv)
-        axs[i,2].plot(f,dsp,'-o')
+        axs[i, 0].plot(t, acc[:, 0, i], label='accX')
+        axs[i, 0].plot(t, acc[:, 1, i], label='accY')
+        axs[i, 0].plot(t, acc[:, 2, i], label='accZ')
+        axs[i, 1].plot(t, conv[i, :])
+        axs[i, 2].plot(f[:15], dsp[i, :15], '-o')
+    axs[0, 0].legend()
+    axs[0, 0].set_title('Señal cruda')
+    axs[1, 0].ticklabel_format(axis='y', style='sci', scilimits=(3, 3))
+    axs[0, 1].set_title('Convolución x*y')
+    axs[0, 2].set_title('Densidad espectral')
+    axs[1, 0].set_xlabel('Tiempo (s)')
+    axs[1, 1].set_xlabel('Tiempo (s)')
+    axs[1, 2].set_xlabel('Frecuencia (Hz)')
+    plt.savefig(
+        'C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/accconvdsp_{}.pdf'.format(tag))
     plt.show()
 
+
+def acc_conv_dsp_s(acc):
+    fig, axs = plt.subplots(2, 3, sharex='col', sharey='col', figsize=[6.1, 8])
+    acc = ft.make_windows(acc, 512)
+    conv = ft.convolve_signal(acc)
+    conv = ft.normalize_convolution(conv, 0.174)
+    t = 0.174 * np.arange(512)
+    f, dsp = scipy.signal.periodogram(conv, fs=1 / 0.174, axis=1)
+    for i in np.arange(2):
+        axs[i, 0].plot(t, acc[:, 0, i], label='accX')
+        axs[i, 0].plot(t, acc[:, 1, i], label='accY')
+        axs[i, 0].plot(t, acc[:, 2, i], label='accZ')
+        axs[i, 1].plot(t, conv[i, :])
+        axs[i, 2].plot(f[:15], dsp[i, :15], '-o')
+    axs[0, 0].legend()
+    axs[0, 0].set_title('Señal cruda')
+    axs[1, 0].ticklabel_format(axis='y', style='sci', scilimits=(3, 3))
+    axs[0, 1].set_title('Convolución x*y')
+    axs[0, 2].set_title('Densidad espectral')
+    axs[1, 0].set_xlabel('Tiempo (s)')
+    axs[1, 1].set_xlabel('Tiempo (s)')
+    axs[1, 2].set_xlabel('Frecuencia (Hz)')
+    plt.savefig(
+        'C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/accconvcopula.pdf')
+    plt.show()
+
+def dsp_accvsconv(data):
+    t = np.arange(512)*.174
+    fig, axs = plt.subplots(2, 2, sharex='col', figsize=[6.1, 4])
+    axs[0,0].plot(t,data[:, 0], label='accX')
+    axs[0,0].plot(t,data[:, 1], label='accY')
+    axs[0,0].plot(t,data[:, 2], label='accZ')
+    accx_normalized = data[:, 0]-np.mean(data[:, 0])
+    accx_normalized = accx_normalized/np.trapz(accx_normalized ** 2, dx=0.174) ** 0.5
+    accy_normalized = data[:, 1]-np.mean(data[:, 1])
+    accy_normalized = accy_normalized/np.trapz(accy_normalized ** 2, dx=0.174) ** 0.5
+    accz_normalized = data[:, 2]-np.mean(data[:, 2])
+    accz_normalized = accz_normalized/np.trapz(accz_normalized ** 2, dx=0.174) ** 0.5
+    f,dspx=scipy.signal.periodogram(accx_normalized, fs=1 / 0.174)
+    dspy=scipy.signal.periodogram(accy_normalized, fs=1 / 0.174)[1]
+    dspz=scipy.signal.periodogram(accz_normalized, fs=1 / 0.174)[1][2:]
+    axs[0,1].plot(f[:25],dspx[:25], label='X')
+    axs[0,1].plot(f[:25],dspy[:25], label='Y')
+
+    conv = np.real(np.fft.ifft(np.multiply(np.fft.fft(data[:, 0], axis=0), np.fft.fft(data[:, 1], axis=0)), axis=0))
+    axs[1,0].plot(t,conv)
+    conv = conv - np.mean(conv)
+    conv = conv / np.trapz(conv ** 2, dx=0.174) ** 0.5
+    axs[1,1].plot(f[:25], scipy.signal.periodogram(conv, fs=1 / 0.174)[1][:25])
+    axs[0,0].legend()
+    axs[0,1].legend()
+    axs[0,0].set_title('Señal cruda')
+    axs[0,1].set_title('Densidad espectral')
+    axs[1,0].set_title('Convolución x*y')
+    axs[1,1].set_title('Densidad espectral de la convolucion')
+    axs[1,0].set_xlabel('Tiempo (s)')
+    axs[1,1].set_xlabel('Frecuencia (Hz)')
+    #plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/convolucion.pdf')
+    plt.show()

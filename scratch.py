@@ -1,31 +1,55 @@
 from copy import copy
 import time
-
+import Finding_features as ft
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import movimiento as mov
 import datetime
 import os
+import matplotlib as mpl
 import scipy.signal
-fig, axes = plt.subplots(nrows=3, figsize=(6, 8), constrained_layout=True,sharex=True)
+plt.style.use("seaborn")
+mpl.rcParams.update(
+    {
+        "text.usetex": True,
+        "axes.titlesize": 10,
+        "font.size": 10,
+        "axes.labelsize": 10,
+        "legend.fontsize": 8,
+        "xtick.labelsize": 8,
+        "ytick.labelsize": 8,
+        "xtick.major.size": 4,
+        "ytick.major.size": 4,
+        "figure.figsize": [6.1, 4],
+        "savefig.format": 'pdf',
+        "savefig.bbox": 'tight',
+        "axes.linewidth":1,
+        "lines.linewidth":1,
+        "lines.markersize":1,
+    }
+)
+
+fig, axes = plt.subplots(nrows=2, figsize=(6.1, 5), constrained_layout=True,sharex='all')
 
 
-df = mov.ReadIMUData(os.path.join(mov.tortugometro_path,'01_2021','T30.csv'))
-df=df[(df['datetime']>datetime.datetime(year=2021, month=1, day=12, hour=10, minute=0,second=0))&(df['datetime']<datetime.datetime(year=2021, month=1, day=12, hour=13, minute=0,second=0))]
+df = mov.ReadIMUData(os.path.join(mov.tortugometro_path,'11_2021','T11.csv'))
+df=df[(df['datetime']>datetime.datetime(year=2021, month=11, day=21, hour=16, minute=18,second=0))&(df['datetime']<datetime.datetime(year=2021, month=11, day=21, hour=16, minute=21,second=0))]
+#df = mov.ReadIMUData(os.path.join(mov.tortugometro_path,'01_2021','T30.csv'))
+#df = df[(df['datetime']>datetime.datetime(year=2021, month=1, day=12, hour=9, minute=39,second=0))&(df['datetime']<datetime.datetime(year=2021, month=1, day=12, hour=11, minute=52,second=0))]
+
+#df = mov.ReadIMUData(os.path.join(mov.tortugometro_path,'11_2021','T10.csv'))
+#df = df[(df['datetime']>datetime.datetime(year=2021, month=11, day=26, hour=12, minute=53, second=0))&(df['datetime']<datetime.datetime(year=2021, month=11, day=26, hour=13, minute=4,second=0))]
+
 acc = df[['accX', 'accY', 'accZ']].to_numpy()
 del df
-acc=acc[:int(np.trunc(acc.shape[0]/2048))*2048,:]
-acc=np.stack(np.split(acc,acc.shape[0]/2048),axis=-1)
-conv = np.real(np.fft.ifft(np.multiply(np.fft.fft(acc[:,0,:],axis=0), np.fft.fft(acc[:,1,:],axis=0)), axis=0))
-conv=conv.T
-conv -= np.mean(conv,axis=1,keepdims=True)
-conv /= np.trapz(conv ** 2, dx=0.174,axis=1).reshape(-1,1) ** 0.5
-
+acc = ft.make_windows(acc, 512)
+conv = ft.convolve_signal(acc)
+conv = ft.normalize_convolution(conv)
 f, dsp = scipy.signal.periodogram(conv, fs=1 / 0.174, scaling='density',axis=1)
 
-x=f[:20]
-Y=dsp[:,:20]
+x = f[:15]
+Y = dsp[:, :15]
 # Plot series using `plot` and a small value of `alpha`. With this view it is
 # very difficult to observe the sinusoidal behavior because of how many
 # overlapping series there are. It also takes a bit of time to run because so
@@ -33,11 +57,11 @@ Y=dsp[:,:20]
 tic = time.time()
 axes[0].plot(x, Y.T, color="C0", alpha=0.1)
 toc = time.time()
-axes[0].set_title("Line plot with alpha")
+axes[0].set_title("Densidad espectral")
 print(f"{toc-tic:.3f} sec. elapsed")
 
-num_series=dsp.shape[0]
-num_points=dsp.shape[1]
+num_series = dsp.shape[0]
+num_points = dsp.shape[1]
 # Now we will convert the multiple time series into a histogram. Not only will
 # the hidden signal be more visible, but it is also a much quicker procedure.
 tic = time.time()
@@ -58,16 +82,10 @@ cmap = copy(plt.cm.plasma)
 cmap.set_bad(cmap(0))
 h, xedges, yedges = np.histogram2d(x_fine, y_fine, bins=[400, 100])
 pcm = axes[1].pcolormesh(xedges, yedges, h.T, cmap=cmap,
-                         norm=LogNorm(vmax=5e2), rasterized=True)
-fig.colorbar(pcm, ax=axes[1], label="# points", pad=0)
-axes[1].set_title("2d histogram and log color scale")
-
+                         norm=LogNorm(vmax=1.5e2), rasterized=True)
+fig.colorbar(pcm, ax=axes[1], pad=0)
+axes[1].set_title("Histograma 2D de la densidad")
+axes[1].set_xlabel('Frecuencia (Hz)')
+plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/histdensidadnidi.pdf')
 # Same data but on linear color scale
-pcm = axes[2].pcolormesh(xedges, yedges, h.T, cmap=cmap,
-                         vmax=1.5e2, rasterized=True)
-fig.colorbar(pcm, ax=axes[2], label="# points", pad=0)
-axes[2].set_title("2d histogram and linear color scale")
-
-toc = time.time()
-print(f"{toc-tic:.3f} sec. elapsed")
 plt.show()
