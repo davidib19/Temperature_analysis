@@ -1,3 +1,6 @@
+"""
+En este archivo se encuentra el codigo para generar todas las figuras presentadas en la tesis.
+"""
 import LeerDatosExcel as lee
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -12,6 +15,9 @@ from matplotlib.colors import ListedColormap, BoundaryNorm
 import scipy.signal
 import Finding_features as ft
 
+# En la siguiente linea defino los parametros para los graficos. El tamanio de la figura y de la fuente estan elegidos
+# de tal manera que encajen en la tesis (formato A4, ancho 6.1 pulgadas) sin tener que reescalear la figura, y asi queda
+# el texto de la figura del mismo tamanio que el texto de la tesis
 plt.style.use("seaborn")
 mpl.rcParams.update(
     {
@@ -36,16 +42,18 @@ mpl.rcParams.update(
 
 
 def plotsegment(df):
+    """Grafica un segmento de la aceleracion de la tortuga en los 3 ejes
+    toma como entrada el dataframe"""
     df['dia'] = df['datetime'].dt.date
     groups = df.groupby('dia')
     fig, ax = plt.subplots()
     for name, group in groups:
         x = mdates.date2num(group['datetime'])
-        y = group['accX']
-        ax.plot(x, y, label='accX')
+        ax.plot(x, group['accX'], label='accX')
         ax.plot(x, group['accY'], label='accY')
         ax.plot(x, group['accZ'], label='accZ')
-        ax.plot(x,(y**2+group['accY']**2+group['accZ']**2)**0.5, label='accTotal', color='black')
+        # descomentar la siguiente linea si tambien quiere graficar la aceleracion total
+        #ax.plot(x,(y**2+group['accY']**2+group['accZ']**2)**0.5, label='accTotal', color='black')
         ax.set_ylabel(str(group['datetime'].iloc[0].date()))
         ax.xaxis.set_major_locator(mdates.HourLocator())
         ax.xaxis.set_minor_locator(mdates.MinuteLocator())
@@ -54,17 +62,19 @@ def plotsegment(df):
         ax.tick_params(axis='x', labelrotation=45)
         ax.set_xlabel("Hora")
         ax.set_ylabel("Aceleración (u)")
-        ax.legend(loc=1, bbox_to_anchor=(0.3, 0.75))
-
+        #ax.legend(loc=1, bbox_to_anchor=(0.3, 0.75))
+        '''las siguientes lineas son para trazar lineas verticales donde se cortan los segmentos de 512
+         puntos para la inferencia'''
         #for i in np.arange(int(np.trunc(x.shape[0]/512))+1):
         #    ax.axvline(x=x[512*i])
     plt.subplots_adjust(wspace=0, hspace=0)
-
-    plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/unidades2.pdf')
     plt.show()
 
 
 def plotacc(campa, document):
+    """Grafica todos los datos de acelerometro disponibles para una tortuga en una campania dada
+    Insertar la campania como string en el mismo formato que las carpetas de datos ('11_2020' por ejemplo) y
+    el documento como string T seguido del numero de tortuga y .csv ('T30.csv' por ejemplo)"""
     df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
     df['dia'] = df['datetime'].dt.date
     groups = df.groupby('dia')
@@ -111,12 +121,13 @@ def plotacc(campa, document):
     fig.suptitle('Tortuga' + document[:-4] + ' ' + campa[0:2] + '/' + campa[3:])
     fig.supylabel('Aceleración (u)')
     plt.subplots_adjust(wspace=0, hspace=0)
-    plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/aceleracion.pdf')
-
     plt.show()
 
 
 def plotacc_con_etiqueta(campa, document):
+    """Hace lo mismo que plot_acc pero ademas encuentra las etiquetas disponibles para la tortuga y escribe el numero
+    correspondiente a la actividad en el momento correspondiente. Las actividades son 0 quieta 1 camina 2 hace nido
+    3 come 4 macho_copulando 5 hembra_copulando 6 pelea 7 otro """
     df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
     df['dia'] = df['datetime'].dt.date
     etiquetas = os.path.exists(os.path.join(os.getcwd(), "Etiquetas", campa, document))
@@ -185,6 +196,9 @@ def plotacc_con_etiqueta(campa, document):
 
 
 def plot_two_tortoises(campa, dia, t1, t2):
+    """Grafica la aceleracion de dos tortugas en el mismo dia, esto es util para observar que hacen las tortugas cuando
+    se encuentran para ver si estan peleando, copulando, o algo mas. Insertar campa t1 y t2 con el mismo formato
+    que en las otras funciones y el dia en formato datetime.datetime con año, mes, dia"""
     df1 = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, t1))
     df1 = df1[(df1['datetime'] > dia.replace(hour=6, minute=0, second=0)) & (
             df1['datetime'] < dia.replace(hour=23, minute=59, second=59))]
@@ -219,6 +233,9 @@ def plot_two_tortoises(campa, dia, t1, t2):
 
 
 def histograma_movimiento_por_horadeldia(campanias):
+    """Grafica el histograma de cantidad de movimiento en funcion de la hora del dia
+    Ingresar las campanias como una lista por ejemplo ['11_2020', '11_2021'], lo hice de esta manera para poder separar
+    por temporada y ver si el comportamiento entre verano y primavera es distinto"""
     movimientos = []
     todos = []
     for campa in campanias:
@@ -303,11 +320,15 @@ def histograma_movimiento_por_horadeldia(campanias):
     plt.bar(x, y, width=2, align='edge')
     plt.legend(['Total de mediciones', 'Mediciones donde se detectó movimiento'])
     plt.xlabel('Hora del día')
+    # Cambiar el titulo segun las campanias en la siguiente linea
     plt.title('Enero')
     plt.show()
 
 
 def histograma_temperatura_vs_movimiento():
+    """Grafica el histograma de tiempo en movimiento dada la temperatura, en funcion de la temperatura
+    Esta tod comentado porque el calculo tarda bastante asi que lo guarde en un pickle, para reahcer el calculo
+    descomentar y correrlo (puede servir para actualizar si se tienen datos nuevos) """
     #todos = pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
     #for campa in os.listdir(mov.tortugometro_path):
     #    for document in os.listdir(os.path.join(mov.tortugometro_path, campa)):
@@ -340,11 +361,15 @@ def histograma_temperatura_vs_movimiento():
     axs[0].set_ylabel(r'P(movimiento $\vert$ T)')
     axs[1].set_ylabel('P(T)')
     axs[1].set_xlabel('Temperatura (°C)')
-    plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'mov_dado_Tambiente.pdf'))
+    # descomentar la siguiente linea para gguardar la figura
+    # plt.savefig(os.path.join(os.getcwd(), 'Histograma_movimiento_vs_temperatura_ibutton', 'mov_dado_Tambiente.pdf'))
     plt.show()
 
 
 def colorcurve(campa, document):
+    """Realiza un grafico de la temperatura del ambiente y la temperatura sobre la tortuga, en funcion del tiempo y
+    colorea la temperatura sobre la tortuga segun el estado de la tortuga (quieta o en movimiento) las variables campa
+    y document siguen la misma convencion que en las otras funciones"""
     if document[-3:] == 'csv':
         df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
         rangos = mov.movimiento_por_convolucion(df)
