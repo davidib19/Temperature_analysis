@@ -411,6 +411,7 @@ def colorcurve(campa, document):
 
 
 def histograma_etiquetas():
+    """Realiza un histograma de la cantidad de etiquetas por actividad"""
     with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'),
               'rb') as handle:
         db = pkl.load(handle)
@@ -426,6 +427,9 @@ def histograma_etiquetas():
 
 
 def database_etiquetada():
+    """Genera la base de datos etiquetada asignando un segmento de senial a cada etiqueta
+    Devuelve un array de nx513x3 donde cada fila es un segmento, la primera columna corresponde a la etiqueta y
+    la ultima dimension corresponde a cada eje x y z (parecido a como usualmente se trabaja con imagenes rgb)"""
     db = np.zeros((1, 515, 3))
     for campa in os.listdir(lee.etiqueta_path):
         for document in os.listdir(os.path.join(lee.etiqueta_path, campa)):
@@ -454,6 +458,7 @@ def database_etiquetada():
 
 
 def acc_conv_dsp(tag=1):
+    """grafica la aceleracion, convolucion, y densidad espectral de segmentos etiquetados"""
     with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'),
               'rb') as handle:
         db = pkl.load(handle)
@@ -480,12 +485,11 @@ def acc_conv_dsp(tag=1):
     axs[1, 0].set_xlabel('Tiempo (s)')
     axs[1, 1].set_xlabel('Tiempo (s)')
     axs[1, 2].set_xlabel('Frecuencia (Hz)')
-    plt.savefig(
-        'C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/accconvdsp_{}.pdf'.format(tag))
     plt.show()
 
 
 def acc_conv_dsp_s(acc):
+    """ grafica la aceleracion, convolucion, y densidad espectral de un segmento no etiquetado"""
     fig, axs = plt.subplots(2, 3, sharex='col', sharey='col', figsize=[6.1, 8])
     acc = ft.make_windows(acc, 512)
     conv = ft.convolve_signal(acc)
@@ -506,11 +510,11 @@ def acc_conv_dsp_s(acc):
     axs[1, 0].set_xlabel('Tiempo (s)')
     axs[1, 1].set_xlabel('Tiempo (s)')
     axs[1, 2].set_xlabel('Frecuencia (Hz)')
-    plt.savefig(
-        'C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/accconvcopula.pdf')
     plt.show()
 
+
 def dsp_accvsconv(data):
+    """Grafica la densidad espectral de la senial cruda y de la convolucion para comparar"""
     t = np.arange(512)*.174
     fig, axs = plt.subplots(2, 2, sharex='col', figsize=[6.1, 4])
     axs[0,0].plot(t,data[:, 0], label='accX')
@@ -541,5 +545,4 @@ def dsp_accvsconv(data):
     axs[1,1].set_title('Densidad espectral de la convolucion')
     axs[1,0].set_xlabel('Tiempo (s)')
     axs[1,1].set_xlabel('Frecuencia (Hz)')
-    #plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/convolucion.pdf')
     plt.show()
