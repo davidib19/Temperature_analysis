@@ -146,5 +146,6 @@ print(dspfft[:15])
 print(dspcirc[:15])
 plt.show()
 '''
-
-Grafica.histograma_temperatura_vs_movimiento()
+df= mov.ReadIMUData(os.path.join(mov.tortugometro_path,'01_2021','T30.csv'))
+df = df[(df['datetime']>datetime.datetime(year=2021, month=1, day=13, hour=12, minute=40,second=0))&(df['datetime']<datetime.datetime(year=2021, month=1, day=13, hour=13, minute=10,second=0))]
+Grafica.plotsegment(df)

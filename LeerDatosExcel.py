@@ -4,9 +4,12 @@ import os
 
 data_path = os.path.join(os.getcwd(), "Datos")
 etiqueta_path = os.path.join(os.getcwd(), "Etiquetas")
+tortugometro_path = os.path.join(os.path.split(os.getcwd())[0], "Datos")
 
 
 def toDatetime(string_datetime):
+    """Transforma la fecha y hora del formato que viene en el archivo original
+     a un datetime.datetime. es una funcion auxiliar"""
     if isinstance(string_datetime, str):
         if string_datetime != "":
             lista = string_datetime.split(" ")
@@ -49,6 +52,16 @@ def ReadIMUData(path):
     return df.drop(['date', 'timeGMT'], axis=1)
 
 
+def ReadIMUDataO(path, cols=['date', 'timeGMT', 'accX', 'accY', 'accZ', 'tempIMU_C', 'lat',  'lon']):
+    """Lee los datos del tortugómetro con el formato que vienen y los guarda en un pandas dataframe con una columna
+    en tipo datetime.datetime transformada a hora de Argentina."""
+    df = pd.read_csv(path, parse_dates=['date'], converters={'timeGMT': formatIMU}, sep=';', usecols=cols)
+    df['datetime'] = df.apply(
+        lambda r: datetime.datetime.combine(r['date'], r['timeGMT']) - datetime.timedelta(hours=3), 1)
+    return df.drop(['date', 'timeGMT'], axis=1)
+
+
+
 def ReadTags(string):
     """Lee el archivo de tags y lo guarda en un dataframe con las columnas datetime y tag"""
     df = pd.read_csv(string, sep=';', header=None, names=['date', 'time','tag','observation'])
@@ -58,6 +71,8 @@ def ReadTags(string):
 
 
 def ReadMyTags():
+    """Lee el archivo de my tags que contienen hora de inicio y final
+    y lo guarda en un dataframe con las columnas datetime y tag"""
     df = pd.read_csv(os.path.join(os.getcwd(), "aceleraciones_etiquetadas", "mis_etiquetas.csv"), sep=';')
     df['inicio']=pd.to_datetime(df['fecha']+df['hora_inicio'], format='%d/%m/%Y%H:%M')
     df['fin']=pd.to_datetime(df['fecha']+df['hora_final'], format='%d/%m/%Y%H:%M')
@@ -66,6 +81,8 @@ def ReadMyTags():
 
 
 def formatIMU(stringhour):
+    """Transforma la hora del formato que viene en el archivo de tortugometro a un datetime.time es una funcion auxiliar
+    usada en las otras"""
     microsecond = int(stringhour[-3:]) * 1000
     second = int(stringhour[-6:-4])
     minute = int(stringhour[-8:-6])
@@ -78,4 +95,7 @@ def formatIMU(stringhour):
         hour += 1
     return datetime.time(microsecond=microsecond, second=second, minute=minute, hour=hour)
 
+
+def toTimestamp(d):
+  return datetime.datetime.timestamp(d)
 

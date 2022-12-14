@@ -53,7 +53,7 @@ def plotsegment(df):
         ax.plot(x, group['accY'], label='accY')
         ax.plot(x, group['accZ'], label='accZ')
         # descomentar la siguiente linea si tambien quiere graficar la aceleracion total
-        #ax.plot(x,(y**2+group['accY']**2+group['accZ']**2)**0.5, label='accTotal', color='black')
+        # ax.plot(x,(y**2+group['accY']**2+group['accZ']**2)**0.5, label='accTotal', color='black')
         ax.set_ylabel(str(group['datetime'].iloc[0].date()))
         ax.xaxis.set_major_locator(mdates.HourLocator())
         ax.xaxis.set_minor_locator(mdates.MinuteLocator())
@@ -62,10 +62,10 @@ def plotsegment(df):
         ax.tick_params(axis='x', labelrotation=45)
         ax.set_xlabel("Hora")
         ax.set_ylabel("Aceleración (u)")
-        #ax.legend(loc=1, bbox_to_anchor=(0.3, 0.75))
+        # ax.legend(loc=1, bbox_to_anchor=(0.3, 0.75))
         '''las siguientes lineas son para trazar lineas verticales donde se cortan los segmentos de 512
          puntos para la inferencia'''
-        #for i in np.arange(int(np.trunc(x.shape[0]/512))+1):
+        # for i in np.arange(int(np.trunc(x.shape[0]/512))+1):
         #    ax.axvline(x=x[512*i])
     plt.subplots_adjust(wspace=0, hspace=0)
     plt.show()
@@ -75,10 +75,10 @@ def plotacc(campa, document):
     """Grafica todos los datos de acelerometro disponibles para una tortuga en una campania dada
     Insertar la campania como string en el mismo formato que las carpetas de datos ('11_2020' por ejemplo) y
     el documento como string T seguido del numero de tortuga y .csv ('T30.csv' por ejemplo)"""
-    df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
+    df = lee.ReadIMUDataO(os.path.join(lee.tortugometro_path, campa, document))
     df['dia'] = df['datetime'].dt.date
     groups = df.groupby('dia')
-    fig, ax = plt.subplots(groups.ngroups, 1, sharex='all',figsize=(6.1, 1.5*groups.ngroups))
+    fig, ax = plt.subplots(groups.ngroups, 1, sharex='all', figsize=(6.1, 1.5 * groups.ngroups))
     lim1 = mdates.date2num(df['datetime'].iloc[0].replace(hour=8, minute=0, second=0))
     lim2 = mdates.date2num(df['datetime'].iloc[0].replace(hour=20, minute=59, second=59))
     i = 0
@@ -128,7 +128,7 @@ def plotacc_con_etiqueta(campa, document):
     """Hace lo mismo que plot_acc pero ademas encuentra las etiquetas disponibles para la tortuga y escribe el numero
     correspondiente a la actividad en el momento correspondiente. Las actividades son 0 quieta 1 camina 2 hace nido
     3 come 4 macho_copulando 5 hembra_copulando 6 pelea 7 otro """
-    df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
+    df = lee.ReadIMUDataO(os.path.join(lee.tortugometro_path, campa, document))
     df['dia'] = df['datetime'].dt.date
     etiquetas = os.path.exists(os.path.join(os.getcwd(), "Etiquetas", campa, document))
     if etiquetas:
@@ -199,10 +199,10 @@ def plot_two_tortoises(campa, dia, t1, t2):
     """Grafica la aceleracion de dos tortugas en el mismo dia, esto es util para observar que hacen las tortugas cuando
     se encuentran para ver si estan peleando, copulando, o algo mas. Insertar campa t1 y t2 con el mismo formato
     que en las otras funciones y el dia en formato datetime.datetime con año, mes, dia"""
-    df1 = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, t1))
+    df1 = lee.ReadIMUDataO(os.path.join(lee.tortugometro_path, campa, t1))
     df1 = df1[(df1['datetime'] > dia.replace(hour=6, minute=0, second=0)) & (
             df1['datetime'] < dia.replace(hour=23, minute=59, second=59))]
-    df2 = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, t2))
+    df2 = lee.ReadIMUDataO(os.path.join(lee.tortugometro_path, campa, t2))
     df2 = df2[(df2['datetime'] > dia.replace(hour=6, minute=0, second=0)) & (
             df2['datetime'] < dia.replace(hour=23, minute=59, second=59))]
     fig, ax = plt.subplots(2, 1, sharex='all')
@@ -239,9 +239,9 @@ def histograma_movimiento_por_horadeldia(campanias):
     movimientos = []
     todos = []
     for campa in campanias:
-        for document in os.listdir(os.path.join(mov.tortugometro_path, campa)):
+        for document in os.listdir(os.path.join(lee.tortugometro_path, campa)):
             if document[-3:] == 'csv':
-                df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
+                df = lee.ReadIMUDataO(os.path.join(lee.tortugometro_path, campa, document))
                 rangos = mov.movimiento_por_convolucion(df)
                 aux = df['datetime'][:rangos.size * 128:128].dt.time.to_numpy()
                 todos.append(aux)
@@ -329,11 +329,11 @@ def histograma_temperatura_vs_movimiento():
     """Grafica el histograma de tiempo en movimiento dada la temperatura, en funcion de la temperatura
     Esta tod comentado porque el calculo tarda bastante asi que lo guarde en un pickle, para reahcer el calculo
     descomentar y correrlo (puede servir para actualizar si se tienen datos nuevos) """
-    #todos = pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
-    #for campa in os.listdir(mov.tortugometro_path):
-    #    for document in os.listdir(os.path.join(mov.tortugometro_path, campa)):
+    # todos = pd.DataFrame({'rangos': pd.Series(dtype=np.float64), 'tempIMU_C': pd.Series(dtype=np.float64)})
+    # for campa in os.listdir(lee.tortugometro_path):
+    #    for document in os.listdir(os.path.join(lee.tortugometro_path, campa)):
     #        if document[-3:] == 'csv':
-    #            df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
+    #            df = lee.ReadIMUDataO(os.path.join(lee.tortugometro_path, campa, document))
     #            rangos = ft.calculate_features(df)
     #            rangos = rangos[:,0]
     #            boo, df2 = mov.movimiento_vs_T(df, rangos)
@@ -344,9 +344,9 @@ def histograma_temperatura_vs_movimiento():
     #                aux['rangos'] = rangos
     #                todos = pd.concat([todos, aux], ignore_index=True)
     fig, axs = plt.subplots(2, 1, sharex='all', figsize=[4, 6])
-    #todos['rangos'] = todos['rangos'].astype(np.float64)
-    #todos['tempIMU_C'] = todos['tempIMU_C'].astype(np.float64)
-    #todos.to_pickle('todosimu.pkl')
+    # todos['rangos'] = todos['rangos'].astype(np.float64)
+    # todos['tempIMU_C'] = todos['tempIMU_C'].astype(np.float64)
+    # todos.to_pickle('todosimu.pkl')
     todos = pd.read_pickle('todos.pkl')
 
     q = todos.loc[(10 ** 3 < todos['rangos']) & (todos['rangos'] < 10 ** 5)]
@@ -356,7 +356,7 @@ def histograma_temperatura_vs_movimiento():
     movs = movs * 0.3712 / 60
     quieto = quieto * 0.3712 / 60
     axs[0].bar(np.arange(15, 36, 2.5), movs / (movs + quieto), width=2.5, align='edge')
-    axs[1].bar(np.arange(15, 36, 2.5),(movs + quieto)/np.sum(movs+quieto), width=2.5, align='edge')
+    axs[1].bar(np.arange(15, 36, 2.5), (movs + quieto) / np.sum(movs + quieto), width=2.5, align='edge')
 
     axs[0].set_ylabel(r'P(movimiento $\vert$ T)')
     axs[1].set_ylabel('P(T)')
@@ -371,7 +371,7 @@ def colorcurve(campa, document):
     colorea la temperatura sobre la tortuga segun el estado de la tortuga (quieta o en movimiento) las variables campa
     y document siguen la misma convencion que en las otras funciones"""
     if document[-3:] == 'csv':
-        df = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
+        df = lee.ReadIMUDataO(os.path.join(lee.tortugometro_path, campa, document))
         rangos = mov.movimiento_por_convolucion(df)
         boo, df2 = mov.movimiento_vs_T(df, rangos)
         if boo:
@@ -425,36 +425,6 @@ def histograma_etiquetas():
     plt.savefig('C:/Users/bicho/OneDrive/Documentos/Balseiro/maestria/Tesis/figuras/maestria/cantidad_etiquetas.pdf')
     plt.show()
 
-
-def database_etiquetada():
-    """Genera la base de datos etiquetada asignando un segmento de senial a cada etiqueta
-    Devuelve un array de nx513x3 donde cada fila es un segmento, la primera columna corresponde a la etiqueta y
-    la ultima dimension corresponde a cada eje x y z (parecido a como usualmente se trabaja con imagenes rgb)"""
-    db = np.zeros((1, 515, 3))
-    for campa in os.listdir(lee.etiqueta_path):
-        for document in os.listdir(os.path.join(lee.etiqueta_path, campa)):
-            if document[-3:] == 'csv' and os.path.exists(os.path.join(mov.tortugometro_path, campa, document)):
-                dftags = lee.ReadTags(os.path.join(lee.etiqueta_path, campa, document))
-                dfacc = mov.ReadIMUData(os.path.join(mov.tortugometro_path, campa, document))
-                for i in dftags.index:
-                    f = dftags.loc[i, 'date']
-                    h = dftags.loc[i, 'time']
-                    t = datetime.datetime(year=f.year, month=f.month, day=f.day, hour=h.hour, minute=h.minute,
-                                          second=h.second)
-                    coincidence = dfacc[
-                        (dfacc['datetime'] > t) & (dfacc['datetime'] < t + datetime.timedelta(minutes=4))]
-                    if len(coincidence.index) >= 514:
-                        j = coincidence.index[0]
-                        aux = np.zeros((1, 515, 3))
-                        aux[0, 0, :] = dftags.loc[i, 'tag']
-                        aux[0, 1:, 0] = dfacc.loc[j:j + 513, 'accX']
-                        aux[0, 1:, 1] = dfacc.loc[j:j + 513, 'accY']
-                        aux[0, 1:, 2] = dfacc.loc[j:j + 513, 'accZ']
-                        db = np.concatenate((db, aux), axis=0)
-    db = np.delete(db, 0, 0)
-    with open(os.path.join(os.getcwd(), 'aceleraciones_etiquetadas', 'database_cruda_etiquetada.pickle'),
-              'wb') as handle:
-        pkl.dump(db, handle)
 
 
 def acc_conv_dsp(tag=1):
@@ -515,34 +485,34 @@ def acc_conv_dsp_s(acc):
 
 def dsp_accvsconv(data):
     """Grafica la densidad espectral de la senial cruda y de la convolucion para comparar"""
-    t = np.arange(512)*.174
+    t = np.arange(512) * .174
     fig, axs = plt.subplots(2, 2, sharex='col', figsize=[6.1, 4])
-    axs[0,0].plot(t,data[:, 0], label='accX')
-    axs[0,0].plot(t,data[:, 1], label='accY')
-    axs[0,0].plot(t,data[:, 2], label='accZ')
-    accx_normalized = data[:, 0]-np.mean(data[:, 0])
-    accx_normalized = accx_normalized/np.trapz(accx_normalized ** 2, dx=0.174) ** 0.5
-    accy_normalized = data[:, 1]-np.mean(data[:, 1])
-    accy_normalized = accy_normalized/np.trapz(accy_normalized ** 2, dx=0.174) ** 0.5
-    accz_normalized = data[:, 2]-np.mean(data[:, 2])
-    accz_normalized = accz_normalized/np.trapz(accz_normalized ** 2, dx=0.174) ** 0.5
-    f,dspx=scipy.signal.periodogram(accx_normalized, fs=1 / 0.174)
-    dspy=scipy.signal.periodogram(accy_normalized, fs=1 / 0.174)[1]
-    dspz=scipy.signal.periodogram(accz_normalized, fs=1 / 0.174)[1][2:]
-    axs[0,1].plot(f[:25],dspx[:25], label='X')
-    axs[0,1].plot(f[:25],dspy[:25], label='Y')
+    axs[0, 0].plot(t, data[:, 0], label='accX')
+    axs[0, 0].plot(t, data[:, 1], label='accY')
+    axs[0, 0].plot(t, data[:, 2], label='accZ')
+    accx_normalized = data[:, 0] - np.mean(data[:, 0])
+    accx_normalized = accx_normalized / np.trapz(accx_normalized ** 2, dx=0.174) ** 0.5
+    accy_normalized = data[:, 1] - np.mean(data[:, 1])
+    accy_normalized = accy_normalized / np.trapz(accy_normalized ** 2, dx=0.174) ** 0.5
+    accz_normalized = data[:, 2] - np.mean(data[:, 2])
+    accz_normalized = accz_normalized / np.trapz(accz_normalized ** 2, dx=0.174) ** 0.5
+    f, dspx = scipy.signal.periodogram(accx_normalized, fs=1 / 0.174)
+    dspy = scipy.signal.periodogram(accy_normalized, fs=1 / 0.174)[1]
+    dspz = scipy.signal.periodogram(accz_normalized, fs=1 / 0.174)[1][2:]
+    axs[0, 1].plot(f[:25], dspx[:25], label='X')
+    axs[0, 1].plot(f[:25], dspy[:25], label='Y')
 
     conv = np.real(np.fft.ifft(np.multiply(np.fft.fft(data[:, 0], axis=0), np.fft.fft(data[:, 1], axis=0)), axis=0))
-    axs[1,0].plot(t,conv)
+    axs[1, 0].plot(t, conv)
     conv = conv - np.mean(conv)
     conv = conv / np.trapz(conv ** 2, dx=0.174) ** 0.5
-    axs[1,1].plot(f[:25], scipy.signal.periodogram(conv, fs=1 / 0.174)[1][:25])
-    axs[0,0].legend()
-    axs[0,1].legend()
-    axs[0,0].set_title('Señal cruda')
-    axs[0,1].set_title('Densidad espectral')
-    axs[1,0].set_title('Convolución x*y')
-    axs[1,1].set_title('Densidad espectral de la convolucion')
-    axs[1,0].set_xlabel('Tiempo (s)')
-    axs[1,1].set_xlabel('Frecuencia (Hz)')
+    axs[1, 1].plot(f[:25], scipy.signal.periodogram(conv, fs=1 / 0.174)[1][:25])
+    axs[0, 0].legend()
+    axs[0, 1].legend()
+    axs[0, 0].set_title('Señal cruda')
+    axs[0, 1].set_title('Densidad espectral')
+    axs[1, 0].set_title('Convolución x*y')
+    axs[1, 1].set_title('Densidad espectral de la convolucion')
+    axs[1, 0].set_xlabel('Tiempo (s)')
+    axs[1, 1].set_xlabel('Frecuencia (Hz)')
     plt.show()
